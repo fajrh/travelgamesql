@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gcp-build": "npm run build",
     "build": "vite build",
     "start": "node server/server.js",
     "preview": "vite preview"
