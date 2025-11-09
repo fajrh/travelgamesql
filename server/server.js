@@ -61,9 +61,9 @@ app.get(['/state', '/chatlog.txt'], async (_req, res) => {
 
     // ✅ FIX: don't bind LIMIT using prepared statements; inline a clamped integer and use .query()
     const limit = clampInt(CHAT_HISTORY_LIMIT, 1, 500, 50);
-    const [chatRows] = await p.query(
-      `SELECT * FROM chatlog ORDER BY timestamp DESC LIMIT ${limit}`
-    );
+  const [chatRows] = await p.query(
+  `SELECT * FROM chatlog ORDER BY timestamp DESC LIMIT ${Number(CHAT_HISTORY_LIMIT || 50)}`
+);
 
     res.status(200).json({
       updatedAt: Date.now(),
