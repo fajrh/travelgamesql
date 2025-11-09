@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sfxMuteBtn = document.getElementById('sfx-mute-btn') as HTMLButtonElement;
     const musicMuteBtn = document.getElementById('music-mute-btn') as HTMLButtonElement;
     const settingsOkBtn = document.getElementById('settings-ok-btn') as HTMLButtonElement;
+    const emojiOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-emoji-option]'));
 
     // Multiplayer and Chat Elements
     const otherPlayersContainer = document.getElementById('other-players-container') as HTMLElement;
@@ -1042,7 +1043,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const food = document.createElement('div');
         food.className = 'fry';
         food.dataset.reward = foodData.reward.toString();
-        food.draggable = true;
+        const enableNativeDrag = !supportsCoarsePointer;
+        food.draggable = enableNativeDrag;
         
         const emoji = document.createElement('span');
         emoji.textContent = foodData.emoji;
@@ -1054,18 +1056,20 @@ document.addEventListener('DOMContentLoaded', () => {
         food.appendChild(emoji);
         food.appendChild(label);
 
-        food.addEventListener('dragstart', (e) => {
-            draggedItem = food;
-            e.dataTransfer!.setData('text/plain', food.dataset.reward!);
-            setTimeout(() => {
-                food.classList.add('is-dragging');
-            }, 0);
-        });
+        if (enableNativeDrag) {
+            food.addEventListener('dragstart', (e) => {
+                draggedItem = food;
+                e.dataTransfer!.setData('text/plain', food.dataset.reward!);
+                setTimeout(() => {
+                    food.classList.add('is-dragging');
+                }, 0);
+            });
 
-        food.addEventListener('dragend', () => {
-            food.classList.remove('is-dragging');
-            draggedItem = null;
-        });
+            food.addEventListener('dragend', () => {
+                food.classList.remove('is-dragging');
+                draggedItem = null;
+            });
+        }
 
         if (supportsCoarsePointer) {
             let pointerStart: { x: number; y: number; time: number } | null = null;
@@ -1097,6 +1101,9 @@ document.addEventListener('DOMContentLoaded', () => {
             food.addEventListener('pointerdown', (event) => {
                 if (event.pointerType === 'touch' || event.pointerType === 'pen') {
                     pointerStart = { x: event.clientX, y: event.clientY, time: Date.now() };
+                    draggedItem = food;
+                    food.classList.add('is-dragging');
+                    event.preventDefault();
                 }
             });
 
@@ -1105,10 +1112,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     handleQuickDrop(event.clientX, event.clientY);
                 }
                 pointerStart = null;
+                food.classList.remove('is-dragging');
+                draggedItem = null;
             });
 
             food.addEventListener('pointercancel', () => {
                 pointerStart = null;
+                food.classList.remove('is-dragging');
+                draggedItem = null;
             });
         }
 
@@ -1639,6 +1650,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Settings Listeners
+    const initialEmoji = personEmoji.textContent || '🧍';
+
+    const updateSelectedEmoji = (emoji: string) => {
+        personEmoji.textContent = emoji;
+        emojiOptionButtons.forEach(btn => {
+            const isSelected = btn.dataset.emojiOption === emoji;
+            btn.classList.toggle('selected', isSelected);
+            btn.setAttribute('aria-pressed', isSelected.toString());
+        });
+    };
+
+    updateSelectedEmoji(initialEmoji);
+
+    emojiOptionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const emoji = btn.dataset.emojiOption;
+            if (!emoji) return;
+            playSound('click');
+            updateSelectedEmoji(emoji);
+        });
+    });
+
     playerNameInput.addEventListener('input', () => {
         playerName = playerNameInput.value.trim() || 'Person';
         personLabel.textContent = playerName;
