@@ -1119,16 +1119,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             food.addEventListener('pointerdown', (event) => {
                 if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                    pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
-                    lastMove = pointerStart;
+                    pointerStart = { x: event.clientX, y: event.clientY, time: Date.now() };
                     draggedItem = food;
                     food.classList.add('is-dragging');
-                    food.style.transition = 'none';
-                    try {
-                        food.setPointerCapture(event.pointerId);
-                    } catch {
-                        /* noop */
-                    }
                     event.preventDefault();
                 }
             });
@@ -1180,40 +1173,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 pointerStart = null;
-                lastMove = null;
-                draggedItem = null;
                 food.classList.remove('is-dragging');
-                try {
-                    if (food.hasPointerCapture(event.pointerId)) {
-                        food.releasePointerCapture(event.pointerId);
-                    }
-                } catch {
-                    /* noop */
-                }
+                draggedItem = null;
             });
 
             food.addEventListener('pointercancel', (event) => {
                 if (!pointerStart) return;
                 pointerStart = null;
-                lastMove = null;
                 food.classList.remove('is-dragging');
-                food.style.transition = 'transform 0.22s ease';
-                food.style.setProperty('--tx', '0px');
-                food.style.setProperty('--ty', '0px');
-                setTimeout(() => {
-                    food.style.transition = '';
-                    food.style.removeProperty('--tx');
-                    food.style.removeProperty('--ty');
-                }, 220);
                 draggedItem = null;
-                bagDropzone.classList.remove('over');
-                try {
-                    if (food.hasPointerCapture(event.pointerId)) {
-                        food.releasePointerCapture(event.pointerId);
-                    }
-                } catch {
-                    /* noop */
-                }
             });
 
             food.addEventListener('pointermove', (event) => {

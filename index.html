@@ -1041,45 +1041,26 @@
         }
 
         #player-emoji-options {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(48px, 1fr));
-            grid-auto-rows: 48px;
-            gap: 10px;
-            justify-items: center;
-            align-items: center;
-            padding: 12px 14px;
-            width: 100%;
-            max-width: 320px;
-            margin: 0 auto;
-            border-radius: 16px;
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 10px 32px rgba(27, 22, 54, 0.35);
-            backdrop-filter: blur(6px);
-        }
-
-        .emoji-option-button,
-        .emoji-grid-spacer {
-            width: 100%;
-            height: 100%;
-            border-radius: 12px;
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             justify-content: center;
+            gap: 8px;
+            max-width: 100%;
         }
 
         .emoji-option-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
             border: 2px solid transparent;
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.8);
             font-size: 26px;
             line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
-        }
-
-        .emoji-grid-spacer {
-            border: 2px dashed rgba(255, 255, 255, 0.0);
-            background: transparent;
-            pointer-events: none;
         }
 
         .emoji-option-button:hover,
@@ -1099,15 +1080,9 @@
                 width: min(92vw, 360px);
             }
 
-            #player-emoji-options {
-                grid-template-columns: repeat(4, minmax(42px, 1fr));
-                grid-auto-rows: 42px;
-                gap: 8px;
-                padding: 10px 12px;
-                max-width: 280px;
-            }
-
             .emoji-option-button {
+                width: 40px;
+                height: 40px;
                 font-size: 22px;
             }
         }
@@ -1518,17 +1493,6 @@
                 width: min(94vw, 328px);
             }
 
-            #away-airport-placeholder {
-                top: calc(env(safe-area-inset-top, 0px) + 12px);
-                right: clamp(12px, 12vw, 22px);
-            }
-
-            .return-home-button {
-                font-size: 13px;
-                padding: 0.55em 1em;
-                min-width: 148px;
-            }
-
             #chat-history {
                 font-size: 11px;
             }
@@ -1588,6 +1552,95 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* --- MOBILE DRAG + MOMENTUM SUPPORT --- */
+#minigame-content,
+.fry {
+  touch-action: none; /* allow smooth pointer events on touch */
+}
+
+/* Sleeker café panel + autoscale */
+#minigame-container {
+  width: clamp(280px, 70vw, 420px);
+  padding: 14px;
+  gap: 12px;
+}
+
+/* Smaller title inside minigame dialog */
+#minigame-dialog .elegant-title {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+/* Hide "Cooking Job" label per request */
+#minigame-title { 
+  display: none;
+}
+
+/* Tighter minigame header/instructions */
+#minigame-instructions {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Bag feedback + toss feel */
+#bag-dropzone {
+  font-size: clamp(64px, 11vw, 80px);
+  padding: 14px;
+  border-radius: 50%;
+  transition: transform 0.15s, background-color 0.15s;
+  will-change: transform;
+}
+#bag-dropzone.over {
+  transform: scale(1.12);
+  background-color: rgba(255,255,0,0.22);
+}
+
+/* Fry visual + fade-in respawn */
+.fry {
+  position: absolute;            /* absolute so we can toss with momentum */
+  font-size: clamp(32px, 9vw, 42px);
+  cursor: grab;
+  transition: transform 0.08s, opacity 0.2s;
+  will-change: transform, left, top;
+}
+.fry.is-dragging { opacity: 0.6; cursor: grabbing; }
+.fry.fade-in { animation: fry-fade-in 220ms ease-out; }
+@keyframes fry-fade-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Make the restaurant hub smaller & neater */
+#restaurant-dialog {
+  padding: 16px;
+}
+#restaurant-dialog .elegant-title {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+#restaurant-controls { gap: 10px; }
+
+/* FIX: keep controls pinned to bottom of SCREEN on all devices */
+#home-bottom-left-controls {
+  position: fixed;  /* was absolute in desktop; now always fixed to screen */
+  left: clamp(10px, 4vw, 24px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Ensure the chat bubble + chat panel don’t force page scroll */
+body { overflow: hidden; } /* keep full-screen playfield without scrolling */
+
+/* Slightly reduce overall dialog max width for overlap reduction */
+.dialog-container {
+  max-width: min(90vw, 480px);
+  width: min(90vw, 480px);
+  padding: 18px;
+}
 
     </style>
 <script type="importmap">
@@ -1706,9 +1759,10 @@
         <div id="minigame-container">
              <h2 class="elegant-title">Fajr's Café</h2>
             <div id="minigame-header">
-                <h3 id="minigame-title"></h3>
-                <p id="minigame-instructions">Swipe or toss the orders into the bag to serve travelers.</p>
-            </div>
+  <h3 id="minigame-title"></h3> <!-- hidden via CSS -->
+  <p id="minigame-instructions">Drag food to the bag and earn money!</p>
+</div>
+
             <div id="minigame-content">
                 <div id="fries-container"></div>
                 <div id="bag-dropzone">🛍️</div>
@@ -1758,13 +1812,9 @@
                 <button type="button" class="emoji-option-button" data-emoji-option="🧑‍✈️">🧑‍✈️</button>
                 <button type="button" class="emoji-option-button" data-emoji-option="👩‍🦽">👩‍🦽</button>
                 <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🦯">🧑‍🦯</button>
-                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🚀">🧑‍🚀</button>
-                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🍳">🧑‍🍳</button>
-                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🎓">🧑‍🎓</button>
-                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🌾">🧑‍🌾</button>
-                <span class="emoji-grid-spacer" aria-hidden="true"></span>
-                <span class="emoji-grid-spacer" aria-hidden="true"></span>
-                <span class="emoji-grid-spacer" aria-hidden="true"></span>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧳">🧳</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🕺">🕺</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="💃">💃</button>
             </div>
         </div>
         <div id="settings-controls">
