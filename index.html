@@ -228,9 +228,36 @@
         }
         
         #away-airport-placeholder {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            position: fixed;
+            top: clamp(12px, 6vh, 64px);
+            right: clamp(12px, 6vw, 56px);
+            z-index: 80;
+        }
+
+        .return-home-button {
+            padding: 0.65em 1.4em;
+            font-size: 16px;
+            letter-spacing: 0.02em;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            box-shadow: 0 12px 28px rgba(8, 10, 24, 0.45);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5em;
+            background: linear-gradient(145deg, rgba(24, 18, 60, 0.92), rgba(64, 42, 120, 0.88));
+            color: #f6f2ff;
+            text-shadow: none;
+            min-width: 180px;
+            white-space: nowrap;
+        }
+
+        .return-home-button:before {
+            opacity: 0.55;
+        }
+
+        .return-home-button:after {
+            background: rgba(11, 9, 38, 0.78);
         }
         
         .location-label {
@@ -542,47 +569,84 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            border: 2px dashed #9370db;
-            border-radius: 10px;
-            padding: 20px;
-            width: 400px;
+            gap: 12px;
+            border: 1px solid rgba(240, 230, 140, 0.45);
+            border-radius: 14px;
+            padding: 16px 18px 18px;
+            width: min(320px, 90vw);
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.4);
         }
-        #minigame-header { text-align: center; }
-        #minigame-content { display: flex; justify-content: space-around; align-items: center; width: 100%; min-height: 150px; position: relative;}
-        #fries-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;}
-        .fry { 
-            font-size: 40px; 
+        #minigame-header {
+            text-align: center;
+            width: 100%;
+        }
+        #minigame-header p {
+            margin: 0;
+            font-size: 0.92rem;
+            color: #F8F0C6;
+            opacity: 0.92;
+        }
+        #minigame-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            min-height: 140px;
+            gap: 12px;
+        }
+        #fries-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(70px, 1fr));
+            gap: 10px;
+            justify-items: center;
+            width: 100%;
+            flex: 1;
+        }
+        .fry {
+            --tx: 0px;
+            --ty: 0px;
+            --scale: 1;
+            font-size: 36px;
             cursor: grab;
             display: flex;
             flex-direction: column;
             align-items: center;
             line-height: 1;
-            transition: transform 0.2s, opacity 0.2s;
-            position: relative; /* For animation */
+            transition: transform 0.18s ease, opacity 0.22s ease;
+            transform: translate(var(--tx), var(--ty)) scale(var(--scale));
         }
-        .fry:hover { transform: scale(1.1); }
+        .fry:hover { --scale: 1.08; }
         .fry.is-dragging {
-            opacity: 0.5;
+            opacity: 0.85;
             cursor: grabbing;
+            --scale: 1.1;
+        }
+        .fry.fry--spawning {
+            opacity: 0;
+            --scale: 0.85;
         }
         .food-label {
             font-family: Arial, sans-serif;
-            font-size: 8pt;
+            font-size: 10px;
             color: #F0E68C;
             margin-top: 2px;
             text-shadow: 1px 1px 1px black;
         }
-        #bag-dropzone { 
-            font-size: 80px; 
-            padding: 20px; 
-            border-radius: 50%;
-            transition: transform 0.2s, background-color 0.2s;
+        #bag-dropzone {
+            font-size: 68px;
+            padding: 16px;
+            border-radius: 18px;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            background: rgba(0, 0, 0, 0.25);
+            box-shadow: 0 0 0 2px rgba(240, 230, 140, 0.25);
+            flex-shrink: 0;
         }
         #bag-dropzone.over {
-            transform: scale(1.1);
-            background-color: rgba(255, 255, 0, 0.2);
+            transform: scale(1.08);
+            background-color: rgba(255, 255, 0, 0.18);
         }
+        #minigame-title:empty { display: none; }
         
         /* Staff & Menu Dialogs */
         #restaurant-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
@@ -1351,6 +1415,18 @@
                 height: min(260px, 34vh);
             }
 
+            #away-airport-placeholder {
+                top: calc(env(safe-area-inset-top, 0px) + 14px);
+                right: clamp(12px, 8vw, 28px);
+            }
+
+            .return-home-button {
+                font-size: 14px;
+                padding: 0.6em 1.1em;
+                min-width: 160px;
+                gap: 0.45em;
+            }
+
             #chat-history {
                 font-size: 12px;
             }
@@ -1620,7 +1696,7 @@ body { overflow: hidden; } /* keep full-screen playfield without scrolling */
         <img id="airport-img" src="https://i.ibb.co/GvTXp9Kt/yyz.png" alt="Toronto Pearson Airport">
         <div id="airport-label" class="location-label">Airport</div>
     </div>
-    <button id="away-airport-placeholder" class="hidden button-85" role="button"></button>
+    <button id="away-airport-placeholder" class="hidden button-85 return-home-button" role="button"></button>
 
     <div id="mf-group-container">
         <img id="mf-group-img" src="https://i.ibb.co/Kj6yG9Wr/cafe.png" alt="My Restaurant">
