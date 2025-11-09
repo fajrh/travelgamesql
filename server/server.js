@@ -53,14 +53,22 @@ async function initializeDatabase(pool) {
     CREATE TABLE IF NOT EXISTS players (
       id VARCHAR(36) PRIMARY KEY,
       name VARCHAR(24) NOT NULL,
-      emoji VARCHAR(16),
+      emoji VARCHAR(16)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+
+  await pool.execute(`
+    CREATE TABLE IF NOT EXISTS coordinates (
+      playerId VARCHAR(36) PRIMARY KEY,
       x INT,
       y INT,
       zone VARCHAR(32),
       city VARCHAR(64),
       direction VARCHAR(32),
-      lastUpdated BIGINT NOT NULL
-    );
+      lastUpdated BIGINT NOT NULL,
+      CONSTRAINT fk_coordinates_player FOREIGN KEY (playerId)
+        REFERENCES players(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
 
   await pool.execute(`
@@ -72,8 +80,10 @@ async function initializeDatabase(pool) {
       zone VARCHAR(32),
       city VARCHAR(64),
       timestamp BIGINT NOT NULL,
-      INDEX(timestamp)
-    );
+      INDEX(timestamp),
+      CONSTRAINT fk_chatlog_player FOREIGN KEY (playerId)
+        REFERENCES players(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
   `);
   console.log('✅ Database tables are ready.');
 }
@@ -118,7 +128,7 @@ const server = createServer(async (req, res) => {
 
   if (pathname === '/healthz') {
      try {
-        const [rows] = await pool.execute('SELECT COUNT(*) as playerCount FROM players');
+        const [rows] = await pool.execute('SELECT COUNT(*) as playerCount FROM coordinates');
         writeJson(res, 200, { status: 'ok', players: rows[0].playerCount });
      } catch (err) {
         writeJson(res, 500, { status: 'error', message: 'Database query failed.' });
@@ -128,9 +138,15 @@ const server = createServer(async (req, res) => {
 
   if (pathname === '/state' || pathname === '/chatlog.txt') {
     try {
-        const [players] = await pool.execute('SELECT * FROM players WHERE lastUpdated > ?', [Date.now() - PLAYER_TIMEOUT]);
+        const [players] = await pool.execute(
+          `SELECT p.id, p.name, p.emoji, c.x, c.y, c.zone, c.city, c.direction, c.lastUpdated
+           FROM coordinates c
+           INNER JOIN players p ON p.id = c.playerId
+           WHERE c.lastUpdated > ?`,
+          [Date.now() - PLAYER_TIMEOUT]
+        );
         const [chatRows] = await pool.execute('SELECT * FROM chatlog ORDER BY timestamp DESC LIMIT ?', [CHAT_HISTORY_LIMIT]);
-        
+
         const state = {
             updatedAt: Date.now(),
             players,
@@ -158,14 +174,22 @@ const server = createServer(async (req, res) => {
       const x = clampNumber(payload.x, -5000, 5000, 0);
       const y = clampNumber(payload.y, -5000, 5000, 0);
 
-      const sql = `
-        INSERT INTO players (id, name, emoji, x, y, zone, city, direction, lastUpdated)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      const playerSql = `
+        INSERT INTO players (id, name, emoji)
+        VALUES (?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        name = VALUES(name), emoji = VALUES(emoji), x = VALUES(x), y = VALUES(y), zone = VALUES(zone), city = VALUES(city), direction = VALUES(direction), lastUpdated = VALUES(lastUpdated);
+        name = VALUES(name), emoji = VALUES(emoji);
       `;
 
-      await pool.execute(sql, [id, name, emoji, x, y, zone, city, direction, now]);
+      const coordinatesSql = `
+        INSERT INTO coordinates (playerId, x, y, zone, city, direction, lastUpdated)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        x = VALUES(x), y = VALUES(y), zone = VALUES(zone), city = VALUES(city), direction = VALUES(direction), lastUpdated = VALUES(lastUpdated);
+      `;
+
+      await pool.execute(playerSql, [id, name, emoji]);
+      await pool.execute(coordinatesSql, [id, x, y, zone, city, direction, now]);
       writeJson(res, 200, { status: 'ok' });
     } catch (error) {
         console.error("Error on /update:", error);
@@ -189,12 +213,29 @@ const server = createServer(async (req, res) => {
       const messageId = randomUUID();
 
       const chatSql = `INSERT INTO chatlog (id, playerId, name, message, zone, city, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?);`;
-      const playerUpdateSql = `UPDATE players SET lastUpdated = ? WHERE id = ?;`;
+      const coordinatesUpdateSql = `
+        UPDATE coordinates
+        SET lastUpdated = ?, zone = COALESCE(?, zone), city = COALESCE(?, city)
+        WHERE playerId = ?;
+      `;
+      const coordinatesInsertSql = `
+        INSERT INTO coordinates (playerId, x, y, zone, city, direction, lastUpdated)
+        VALUES (?, 0, 0, ?, ?, 'right', ?)
+        ON DUPLICATE KEY UPDATE
+          zone = VALUES(zone),
+          city = VALUES(city),
+          lastUpdated = VALUES(lastUpdated);
+      `;
 
       // Run both queries
       await pool.execute(chatSql, [messageId, playerId, name, message, zone, city, timestamp]);
-      await pool.execute(playerUpdateSql, [timestamp, playerId]);
-      
+      const zoneValue = typeof zone === 'string' ? zone : null;
+      const cityValue = typeof city === 'string' ? city : null;
+      const [coordUpdateResult] = await pool.execute(coordinatesUpdateSql, [timestamp, zoneValue, cityValue, playerId]);
+      if (coordUpdateResult.affectedRows === 0) {
+        await pool.execute(coordinatesInsertSql, [playerId, zoneValue, cityValue, timestamp]);
+      }
+
       writeJson(res, 200, { status: 'ok' });
     } catch (error) {
       console.error("Error on /chat:", error);
@@ -246,10 +287,17 @@ startServer();
 async function pruneStalePlayers() {
     if (!dbPool) return;
     try {
-        const [result] = await dbPool.execute('DELETE FROM players WHERE lastUpdated < ?', [Date.now() - PLAYER_TIMEOUT]);
-        if (result.affectedRows > 0) {
-            console.log(`Pruned ${result.affectedRows} stale players.`);
+        const threshold = Date.now() - PLAYER_TIMEOUT;
+        const [coordResult] = await dbPool.execute('DELETE FROM coordinates WHERE lastUpdated < ?', [threshold]);
+        if (coordResult.affectedRows > 0) {
+            console.log(`Pruned ${coordResult.affectedRows} stale player coordinates.`);
         }
+
+        await dbPool.execute(`
+          DELETE p FROM players p
+          LEFT JOIN coordinates c ON p.id = c.playerId
+          WHERE c.playerId IS NULL
+        `);
     } catch(err) {
         console.error("Error pruning players:", err);
     }
