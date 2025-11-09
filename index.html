@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almendra&family=Amiri&family=Cinzel&family=Great+Vibes&family=Lobster&family=Meie+Script&family=Noto+Nastaliq+Urdu&family=Oswald&family=Parisienne&family=Playfair+Display&family=Poppins&family=Sriracha&family=Ubuntu&family=Yuji+Syuku&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #111;
+            margin: 0;
+            overflow: hidden; /* Hide scrollbars */
+            cursor: pointer;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            user-select: none; /* Prevent text selection */
+            transition: background-color 1s ease-in-out;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: -1;
+        }
+
+        body::after { /* For background image transition */
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: url('https://cdn.stocksnap.io/img-thumbs/960w/highway-road_QRMU7J5UWN.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: -2; /* Behind the overlay */
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+
+        body.away::after {
+            opacity: 0;
+        }
+        
+        #home-compass {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            transform: translate(-50%, -50%);
+            background-image: url('https://svgsilh.com/svg/309123.svg');
+            background-size: contain;
+            background-repeat: no-repeat;
+            opacity: 0.1;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            font-size: 36px;
+            font-weight: bold;
+            color: yellow;
+            text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000;
+            z-index: 15;
+        }
+
+        #city-title {
+            position: absolute;
+            top: 70px; /* Below the score */
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff0, 0 0 30px #ff0;
+            z-index: 15;
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            background-image: var(--flag-gradient);
+            display: none; /* Hidden by default */
+        }
+
+        #person-container, .other-player {
+            position: absolute;
+            width: 50px;
+            height: auto;
+            text-align: center;
+            transform: translate(-50%, -50%); 
+            will-change: left, top;
+            z-index: 5;
+            overflow: visible;
+        }
+        
+        #person-emoji, .other-player-emoji {
+            font-size: 40px; /* Slightly smaller */
+            line-height: 40px;
+            width: 100px; /* Allow space for luggage */
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        #person-label, .other-player-label {
+            font-size: 12px;
+            color: yellow;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        #passport-office-container, #airport-container, #mf-group-container, #luggage-container, #restaurant-container, #gift-shop-container, #settings-container {
+            position: absolute;
+            text-align: center;
+            z-index: 2;
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+        
+        #passport-office-container:hover, #airport-container:hover, #mf-group-container:hover {
+            transform: scale(1.1);
+        }
+        
+        #luggage-container:hover, #settings-container:hover {
+            transform: scale(1.1);
+            text-shadow: 0 0 10px gold, 0 0 15px gold;
+        }
+
+
+        #passport-office-container {
+            top: 20px;
+            left: 20px;
+        }
+
+        #restaurant-container {
+            top: 20px;
+            left: 20px;
+        }
+
+        #gift-shop-container {
+            top: 140px;
+            left: 20px;
+        }
+
+        #airport-container {
+            top: 20px;
+            right: 20px;
+        }
+
+        #mf-group-container {
+            bottom: 20px;
+            right: 20px;
+        }
+
+        #home-bottom-left-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            z-index: 3;
+        }
+
+        #luggage-container, #settings-container {
+            font-size: 40px;
+            position: relative;
+            transition: all 0.2s ease-in-out;
+        }
+
+        #passport-office-img, #airport-img, #mf-group-img {
+            width: 150px;
+            height: 150px;
+            border: 4px solid gold;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            background-color: #f0f0f0;
+        }
+        
+        #away-airport-placeholder {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        
+        .location-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+            color: yellow;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .dialog-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 10;
+            background-color: rgba(230, 230, 250, 0.95); /* Lavender background */
+            color: #333;
+            padding: 25px;
+            border-radius: 15px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid #9370db; /* Medium Purple Border */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+        }
+        
+        .dialog-container h3 {
+            color: #483d8b; /* Dark Slate Blue */
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #officer-emoji, #success-emoji {
+            font-size: 60px;
+        }
+
+        #speech-bubble, #success-text {
+            margin-top: 15px;
+            background: #fff;
+            color: #000;
+            padding: 10px 15px;
+            border-radius: 10px;
+            position: relative;
+            font-size: 16px;
+            font-weight: bold;
+            max-width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #speech-bubble::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 0 10px 10px 10px;
+            border-style: solid;
+            border-color: transparent transparent #fff transparent;
+        }
+
+        .action-button {
+            background-color: #9370db; /* Medium Purple */
+            color: yellow;
+            border: none;
+            padding: 12px 22px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .action-button:hover:not(:disabled) {
+            background-color: #8a2be2; /* Blue Violet */
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .action-button:disabled {
+            background-color: #aaa;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #flights-dialog {
+            background-color: rgba(10, 10, 10, 0.98);
+            border: 2px solid #333;
+            width: 320px; /* Slightly wider for smaller buttons */
+        }
+        #flights-dialog h3 {
+            color: #FF7E31;
+        }
+        #flights-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* Tighter gap */
+            padding: 10px;
+            width: 100%;
+        }
+        
+        .button-42 .visited-checkmark, .gift-item .visited-checkmark {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 18px;
+        }
+        
+        /* Plane Animation & Other Animations */
+        #plane-animation { 
+            font-size: 100px; 
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        #flight-animation-wrapper { position: relative; width: 250px; height: 150px; display: flex; align-items: center; justify-content: center; }
+        #globe-emoji { font-size: 100px; }
+        #plane-emoji-anim { position: absolute; font-size: 50px; animation: fly-across-screen 3s ease-in-out forwards; }
+        @keyframes fly-across-screen { 
+            0% { transform: translate(-150px, 80px) rotate(-30deg) scale(0.7); opacity: 0; } 
+            15% { transform: translate(-70px, -20px) rotate(15deg) scale(1); opacity: 1; } 
+            50% { transform: translate(0, -60px) rotate(15deg) scale(1.1); } 
+            85% { transform: translate(70px, -20px) rotate(15deg) scale(1); opacity: 1; } 
+            100% { transform: translate(150px, 80px) rotate(50deg) scale(0.7); opacity: 0; } 
+        }
+
+        #passport-celebration { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: none; align-items: center; justify-content: center; z-index: 20; background: rgba(0,0,0,0.7); }
+        #passport-celebration.active { display: flex; }
+        #celebration-passport-emoji { font-size: 150px; animation: passport-fade 2.5s ease-in-out forwards; }
+        @keyframes passport-fade { 0%, 100% { opacity: 0; transform: scale(0.5); } 20%, 80% { opacity: 1; transform: scale(1); } }
+        .sparkle { position: absolute; width: 8px; height: 8px; background: white; border-radius: 50%; pointer-events: none; animation: sparkle-anim 1s ease-out forwards; opacity: 0; }
+        @keyframes sparkle-anim { 0% { transform: scale(0.5); opacity: 1; } 100% { transform: scale(1.5) translate(var(--tx), var(--ty)); opacity: 0; } }
+        #visa-animation-container { position: relative; width: 200px; height: 150px; display: flex; justify-content: center; align-items: center; }
+        #visa-passport-emoji { font-size: 120px; color: #7a9cff; }
+        #visa-sticker-emoji { position: absolute; font-size: 60px; opacity: 0; transform: scale(3); animation: stamp-visa 1s cubic-bezier(0.18, 0.89, 0.32, 1.28) 0.5s forwards; }
+        @keyframes stamp-visa { to { opacity: 1; transform: scale(1) rotate(-15deg); } }
+        
+        .city-image-container {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+        .city-image-container img {
+            width: 640px;
+            height: 480px;
+            max-width: 90vw;
+            max-height: 60vh;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 3px solid #9370db;
+        }
+        
+        #restaurant-view-container {
+            position: relative;
+            padding: 15px;
+            background-color: rgba(230, 230, 250, 0.95);
+            border: 3px solid #9370db;
+        }
+        #restaurant-image {
+            width: 560px;
+            height: 370px;
+            max-width: 90vw;
+            max-height: 80vh;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        #exit-dialog-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 16px;
+            font-family: sans-serif;
+            font-weight: bold;
+            color: yellow;
+            background: #9370db;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid white;
+            z-index: 21;
+        }
+        #exit-dialog-btn:hover { background: #8a2be2; }
+        
+        #caption-container {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            text-align: center;
+            font-family: 'Lucida Console', monospace;
+            font-size: 12pt;
+            color: #39ff14;
+            text-shadow: 0 0 5px #39ff14;
+            z-index: 25;
+            pointer-events: none;
+            min-height: 20px;
+        }
+        
+        #city-emojis {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 15px;
+            z-index: 15;
+            padding: 10px;
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 20px;
+        }
+        #city-emojis span {
+            font-size: 32px;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+        }
+        
+        #visited-cities-list {
+            position: absolute;
+            top: 250px; /* Shifted down */
+            background: rgba(0,0,0,0.6);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid #444;
+            z-index: 10;
+            left: 20px; 
+        }
+        #visited-cities-list h3 { margin: 0 0 10px 0; font-size: 16px; color: #9370db; text-align: center; }
+        #visited-cities-list ul { list-style: none; padding: 0; margin: 0; }
+        #visited-cities-list li { font-size: 14px; margin-bottom: 5px; color: #ccc; }
+        #visited-cities-list li::before { content: '✅ '; }
+
+        .souvenir-item { font-size: 14px; margin-bottom: 5px; color: #333; }
+
+
+        #gift-shop-items-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .elegant-title {
+            font-family: 'Bookman Old Style', serif;
+            font-size: 44px;
+            color: #ffebcd; /* Blanched Almond */
+            text-shadow: 1px 1px 3px #8a2be2;
+            margin: 0 0 10px 0;
+            text-align: center;
+        }
+        
+        .green-felt-bg {
+             background-color: #013220; /* Dark Green fallback */
+            background-image: url('https://www.transparenttextures.com/patterns/green-fibers.png');
+            border-color: #006400; /* Darker Green */
+        }
+        .green-felt-bg h3, .green-felt-bg p {
+            color: #F0E68C; /* Khaki */
+            text-shadow: 1px 1px 3px black;
+         }
+         .green-felt-bg .elegant-title {
+             color: #F0E68C;
+         }
+         .green-felt-bg .button-5 {
+            background-color: #006400;
+         }
+         .green-felt-bg .button-5:hover {
+            background-color: #008000;
+         }
+
+        .red-felt-bg {
+            background-color: #8B0000; /* DarkRed */
+            background-image: url('https://www.transparenttextures.com/patterns/felt.png');
+            border-color: #660000; /* Darker Red */
+        }
+        .red-felt-bg h3 {
+            color: #FFD700; /* Gold */
+            text-shadow: 1px 1px 2px black;
+        }
+        .red-felt-bg .action-button {
+            background-color: #660000;
+            border: 1px solid #FFD700;
+            color: #FFD700;
+        }
+
+        /* Minigame Styles */
+        #minigame-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            border: 2px dashed #9370db;
+            border-radius: 10px;
+            padding: 20px;
+            width: 400px;
+        }
+        #minigame-header { text-align: center; }
+        #minigame-content { display: flex; justify-content: space-around; align-items: center; width: 100%; min-height: 150px; position: relative;}
+        #fries-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;}
+        .fry { 
+            font-size: 40px; 
+            cursor: grab;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            line-height: 1;
+            transition: transform 0.2s, opacity 0.2s;
+            position: relative; /* For animation */
+        }
+        .fry:hover { transform: scale(1.1); }
+        .fry.is-dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .food-label {
+            font-family: Arial, sans-serif;
+            font-size: 8pt;
+            color: #F0E68C;
+            margin-top: 2px;
+            text-shadow: 1px 1px 1px black;
+        }
+        #bag-dropzone { 
+            font-size: 80px; 
+            padding: 20px; 
+            border-radius: 50%;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        #bag-dropzone.over {
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 0, 0.2);
+        }
+        
+        /* Staff & Menu Dialogs */
+        #restaurant-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        #staff-controls, #settings-controls { display: flex; gap: 15px; }
+        
+        #restaurant-dialog, #minigame-dialog {
+             background-color: #013220; /* Dark Green fallback */
+            background-image: url('https://www.transparenttextures.com/patterns/green-fibers.png');
+            border-color: #006400; /* Darker Green */
+        }
+         #restaurant-dialog .elegant-title, #minigame-dialog .elegant-title {
+            color: #F0E68C; /* Khaki */
+            text-shadow: 1px 1px 3px black;
+         }
+         #minigame-dialog p {
+             color: #F0E68C; /* Khaki */
+         }
+
+
+        /* Worker Automation */
+        #worker-animation-container {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 280px;
+            height: auto;
+            background: black;
+            border: 2px solid #9370db;
+            border-bottom: none;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            z-index: 10;
+            padding: 5px;
+        }
+        #worker-animation-container .elegant-title {
+            font-size: 32px;
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+        #worker-animation-row {
+            position: relative;
+            width: 100%;
+            height: 50px;
+        }
+        #worker-animation-row > span {
+            position: absolute;
+            font-size: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        #worker-anim-chef { left: 10px; }
+        #worker-anim-bag { right: 10px; }
+        .worker-anim-item {
+            font-size: 30px;
+            position: absolute;
+        }
+        #worker-anim-food {
+            opacity: 0;
+            animation: move-food 4s linear forwards;
+        }
+        @keyframes move-food {
+            0% { opacity: 1; transform: translate(50px, -50%) scale(1); }
+            80% { opacity: 1; transform: translate(180px, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(180px, -50%) scale(0.5); }
+        }
+
+        /* Earning Toast */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 5px;
+            pointer-events: none;
+        }
+        .toast {
+            background: transparent;
+            color: limegreen;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 5px black, 0 0 3px black;
+            animation: fade-in-out 3s ease-in-out forwards;
+        }
+        @keyframes fade-in-out {
+            0% { opacity: 0; transform: translateY(20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+        
+        /* Recipe Celebration & Win Celebration */
+        #recipe-celebration, #memory-game-win-celebration {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .celebration-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: yellow;
+            text-align: center;
+            text-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00, 2px 2px 5px black;
+            z-index: 51;
+            animation: text-pop-in 3.5s ease-out forwards;
+        }
+        @keyframes text-pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            20% { transform: scale(1.1); opacity: 1; }
+            40% { transform: scale(1); opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; transform: scale(1); }
+        }
+        .firework {
+            position: absolute;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            animation: firework-anim 1.5s ease-out forwards;
+        }
+        @keyframes firework-anim {
+            0% { transform: scale(0.5) translate(0, 0); opacity: 1; }
+            100% { transform: scale(1.2) translate(var(--tx), var(--ty)); opacity: 0; }
+        }
+
+        /* NEW Button Style 85 */
+        .button-85 {
+            padding: 0.6em 2em;
+            border: none;
+            outline: none;
+            color: rgb(255, 255, 255);
+            background: #111;
+            cursor: pointer;
+            position: relative;
+            z-index: 0;
+            border-radius: 10px;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            font-weight: bold;
+            font-style: normal;
+        }
+
+        .button-85:before {
+            content: "";
+            background: linear-gradient(
+                45deg,
+                #ff0000,
+                #ff7300,
+                #fffb00,
+                #48ff00,
+                #00ffd5,
+                #002bff,
+                #7a00ff,
+                #ff00c8,
+                #ff0000
+            );
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            background-size: 400%;
+            z-index: -1;
+            filter: blur(5px);
+            -webkit-filter: blur(5px);
+            width: calc(100% + 4px);
+            height: calc(100% + 4px);
+            animation: glowing-button-85 20s linear infinite;
+            transition: opacity 0.3s ease-in-out;
+            border-radius: 10px;
+        }
+
+        @keyframes glowing-button-85 {
+            0% { background-position: 0 0; }
+            50% { background-position: 400% 0; }
+            100% { background-position: 0 0; }
+        }
+
+        .button-85:after {
+            z-index: -1;
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #222;
+            left: 0;
+            top: 0;
+            border-radius: 10px;
+        }
+        
+        /* NEW Button Style 5 */
+        .button-5 {
+            align-items: center;
+            background-clip: padding-box;
+            background-color: #fa6400;
+            border: 1px solid transparent;
+            border-radius: .25rem;
+            box-shadow: rgba(0, 0, 0, 0.02) 0 1px 3px 0;
+            box-sizing: border-box;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            font-family: system-ui,-apple-system,system-ui,"Helvetica Neue",Helvetica,Arial,sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            justify-content: center;
+            line-height: 1.25;
+            margin: 0;
+            min-height: 3rem;
+            padding: calc(.875rem - 1px) calc(1.5rem - 1px);
+            position: relative;
+            text-decoration: none;
+            transition: all 250ms;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            vertical-align: baseline;
+            width: auto;
+        }
+
+        .button-5:hover:not(:disabled),
+        .button-5:focus:not(:disabled) {
+            background-color: #fb8332;
+            box-shadow: rgba(0, 0, 0, 0.1) 0 4px 12px;
+        }
+
+        .button-5:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .button-5:active:not(:disabled) {
+            background-color: #c85000;
+            box-shadow: rgba(0, 0, 0, .06) 0 2px 4px;
+            transform: translateY(0);
+        }
+        .button-5:disabled {
+            background-color: #666;
+            color: #ccc;
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* NEW Button Style 14 (Gift Shop) */
+        .button-14 {
+            background-image: linear-gradient(#f7f8fa ,#e7e9ec);
+            border-color: #adb1b8 #a2a6ac #8d9096;
+            border-style: solid;
+            border-width: 1px;
+            border-radius: 3px;
+            box-shadow: rgba(255,255,255,.6) 0 1px 0 inset;
+            box-sizing: border-box;
+            color: #0f1111;
+            cursor: pointer;
+            display: inline-block;
+            font-family: "Amazon Ember",Arial,sans-serif;
+            font-size: 14px;
+            height: auto;
+            min-height: 29px;
+            line-height: 1.4;
+            outline: 0;
+            overflow: hidden;
+            padding: 5px 11px;
+            text-align: center;
+            text-decoration: none;
+            text-overflow: ellipsis;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            white-space: normal; /* Allow text wrapping */
+        }
+
+        .button-14:active { border-bottom-color: #a2a6ac; }
+        .button-14:active:hover { border-bottom-color: #a2a6ac; }
+        .button-14:hover { border-color: #a2a6ac #979aa1 #82858a; }
+        .button-14:focus { border-color: #e77600; box-shadow: rgba(228, 121, 17, .5) 0 0 3px 2px; outline: 0; }
+        .button-14:disabled { background-image: linear-gradient(#e7e9ec, #e7e9ec); color: #888; cursor: not-allowed; }
+
+        /* NEW Button Style 42 (Flights) */
+        .button-42 {
+            background-color: initial;
+            border-radius: 6px;
+            box-shadow: rgba(0, 0, 0, 0.1) 0 2px 4px;
+            color: #FFFFFF;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: Inter,-apple-system,system-ui,Roboto,"Helvetica Neue",Arial,sans-serif;
+            height: 32px; /* Reduced height */
+            line-height: 32px; /* Match height */
+            font-size: 13px; /* Smaller font */
+            outline: 0;
+            overflow: hidden;
+            padding: 0 10px; /* Adjusted padding */
+            pointer-events: auto;
+            position: relative;
+            text-align: left;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            vertical-align: top;
+            white-space: nowrap;
+            width: 100%;
+            z-index: 9;
+            border: 0;
+            transition: box-shadow .2s, background-image 0.3s;
+        }
+        .flight-city-name {
+            flex-grow: 1;
+        }
+        .flight-flag {
+            font-size: 16px;
+        }
+        .flight-cost {
+            font-weight: normal;
+            font-size: 0.9em;
+        }
+        
+        .button-42.affordable {
+             background-image: linear-gradient(-180deg, #42f560, #00b321);
+        }
+        .button-42.unaffordable {
+             background-image: linear-gradient(-180deg, #f54242, #b30000);
+        }
+        
+        .button-42.affordable:hover {
+            box-shadow: rgba(66, 245, 96, 0.5) 0 3px 8px;
+        }
+        .button-42.unaffordable:hover {
+            box-shadow: rgba(245, 66, 66, 0.5) 0 3px 8px;
+        }
+
+        .button-42:disabled {
+            background-image: linear-gradient(-180deg, #999, #777);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .button-42 strong { font-size: 16px; margin-bottom: 5px; display: block; }
+
+
+        /* Settings Dialog */
+        #settings-dialog .settings-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        #settings-dialog label {
+            font-weight: bold;
+            color: #483d8b;
+        }
+        #settings-dialog input {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 200px;
+            text-align: center;
+        }
+        #settings-dialog .button-5 {
+            font-size: 24px;
+            padding: 10px;
+            min-height: auto;
+        }
+
+        /* NEW: Memory Game Styles */
+        #memory-game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            perspective: 1000px;
+        }
+        .memory-card {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+        }
+        .memory-card.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .memory-card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            font-size: 40px;
+            box-sizing: border-box;
+        }
+        .memory-card-face.card-front {
+            background-color: #8B0000; /* DarkRed */
+            background-image: url('https://www.transparenttextures.com/patterns/felt.png');
+            border: 2px solid gold;
+        }
+        .memory-card-face.card-back {
+            background: #9370db;
+            color: white;
+            transform: rotateY(180deg);
+            flex-direction: column;
+            gap: 2px;
+            padding-bottom: 2px;
+        }
+        .card-back .card-label {
+            font-size: 8pt;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            text-shadow: 1px 1px 1px #555;
+        }
+
+
+        /* NEW: Gem Swap Game Styles */
+        #gem-swap-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(8, 40px);
+            gap: 2px;
+            background-color: #002315;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .gem {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: transform 0.2s ease, opacity 0.3s ease;
+        }
+        .gem.selected {
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 0, 0.3);
+            border-radius: 50%;
+        }
+        .gem.matched {
+            animation: gem-pop 0.3s ease forwards;
+        }
+        @keyframes gem-pop {
+            from { transform: scale(1); opacity: 1; }
+            to { transform: scale(0); opacity: 0; }
+        }
+
+        /* Flight Tooltip */
+        #flight-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            line-height: 1.5;
+        }
+        
+        /* NEW: Sparkle Effect for Minigames */
+        .sparkle-effect {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 101; /* Above dialogs */
+            opacity: 0;
+            animation: sparkle-effect-anim 0.8s ease-out forwards;
+        }
+        @keyframes sparkle-effect-anim {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(1.5) translate(var(--tx), var(--ty)); opacity: 0; }
+        }
+
+        /* NEW: Chat UI Styles */
+        #chat-container {
+            position: fixed;
+            bottom: 80px;
+            left: 20px;
+            width: 320px;
+            height: 220px;
+            background: radial-gradient(circle at top, rgba(62, 45, 110, 0.92), rgba(22, 18, 45, 0.92));
+            border: 2px solid #ffdf73;
+            border-radius: 14px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+            display: flex;
+            flex-direction: column;
+            z-index: 15;
+            font-family: 'Trebuchet MS', 'Lucida Console', monospace;
+            overflow: hidden;
+            backdrop-filter: blur(4px);
+        }
+
+        #chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 10px;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #ffe9b6;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+        }
+
+        #chat-history p {
+            margin: 0 0 5px 0;
+            word-wrap: break-word;
+            padding: 2px 4px;
+        }
+
+        #chat-input-container {
+            display: flex;
+            border-top: 1px solid #9370db;
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            border: none;
+            background: rgba(18, 14, 32, 0.95);
+            color: #ffe9b6;
+            padding: 10px;
+            outline: none;
+            border-bottom-left-radius: 9px;
+        }
+
+        #chat-send-btn {
+            border: none;
+            background: linear-gradient(180deg, #ffe37a, #ffb347);
+            color: #3a2461;
+            padding: 0 18px;
+            cursor: pointer;
+            font-weight: bold;
+            border-bottom-right-radius: 9px;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+        #chat-send-btn:hover {
+            background: linear-gradient(180deg, #fff1a8, #ffc36a);
+        }
+
+        .chat-bubble {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translate(-50%, -10px) scale(0.9);
+            max-width: 220px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 236, 177, 0.95));
+            border: 2px solid #4f2a7f;
+            border-radius: 16px;
+            color: #322553;
+            padding: 8px 12px;
+            font-size: 13px;
+            line-height: 1.3;
+            font-weight: 600;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.25s ease;
+            white-space: normal;
+            text-align: center;
+            z-index: 20;
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        }
+
+        .chat-bubble.visible {
+            opacity: 1;
+            transform: translate(-50%, -24px) scale(1);
+            animation: bubble-pop 0.25s ease-out;
+        }
+
+        .chat-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0 10px;
+            border-style: solid;
+            border-color: rgba(255, 236, 177, 0.95) transparent transparent transparent;
+            filter: drop-shadow(0 -2px 0 #4f2a7f);
+        }
+
+        @keyframes bubble-pop {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, 0) scale(0.6);
+            }
+            70% {
+                opacity: 1;
+                transform: translate(-50%, -28px) scale(1.05);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -24px) scale(1);
+            }
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #111;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            transition: opacity 0.5s ease;
+            opacity: 1;
+            pointer-events: none;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "http": "https://aistudiocdn.com/http@^0.0.1-security",
+    "crypto": "https://aistudiocdn.com/crypto@^1.0.1",
+    "events": "https://aistudiocdn.com/events@^3.3.0",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "url": "https://aistudiocdn.com/url@^0.11.4",
+    "fs": "https://aistudiocdn.com/fs@^0.0.1-security",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "mysql2/": "https://aistudiocdn.com/mysql2@^3.15.3/",
+    "dotenv/": "https://aistudiocdn.com/dotenv@^17.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <p>Loading your adventure...</p>
+    </div>
+
+    <div id="score">$0</div>
+    <div id="toast-container"></div>
+    <div id="flight-tooltip"></div>
+    <div id="city-title"></div>
+    <div id="home-compass"></div>
+    
+    <div id="visited-cities-list" class="hidden">
+        <h3>Visited</h3>
+        <ul id="visited-list"></ul>
+    </div>
+    
+    <div id="souvenirs-container" class="dialog-container hidden">
+        <div id="exit-dialog-btn" data-dialog="souvenirs-container">X</div>
+        <h3>Souvenirs</h3>
+        <div id="souvenirs-list"></div>
+    </div>
+
+    <div id="passport-office-container">
+        <img id="passport-office-img" src="https://i.ibb.co/ks0NNSgv/passportoffice.jpg" alt="Passport Office">
+        <div class="location-label">Passport Office</div>
+    </div>
+    
+    <button id="restaurant-container" class="hidden button-85" role="button">Restaurant</button>
+    <button id="gift-shop-container" class="hidden button-85" role="button">🎁 Gift Shop</button>
+
+    <div id="airport-container">
+        <img id="airport-img" src="https://i.ibb.co/GvTXp9Kt/yyz.png" alt="Toronto Pearson Airport">
+        <div id="airport-label" class="location-label">Airport</div>
+    </div>
+    <button id="away-airport-placeholder" class="hidden button-85" role="button"></button>
+
+    <div id="mf-group-container">
+        <img id="mf-group-img" src="https://i.ibb.co/Kj6yG9Wr/cafe.png" alt="My Restaurant">
+        <div class="location-label">Fajr's Café</div>
+    </div>
+
+    <div id="home-bottom-left-controls">
+        <div id="luggage-container">🧳</div>
+        <div id="settings-container">⚙️</div>
+    </div>
+    
+    <div id="city-image-container" class="city-image-container hidden">
+        <img id="city-image" src="" alt="City View">
+    </div>
+
+    <div id="city-emojis"></div>
+    <div id="caption-container"></div>
+
+    <div id="person-container">
+        <div id="person-emoji">🚶</div>
+        <div id="person-label">Person</div>
+        <div id="self-chat-bubble" class="chat-bubble hidden"></div>
+    </div>
+
+    <div id="other-players-container"></div>
+
+    <div id="chat-container">
+        <div id="chat-history"></div>
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Say something..." maxlength="100">
+            <button id="chat-send-btn">Send</button>
+        </div>
+    </div>
+
+
+    <!-- DIALOGS -->
+    <div id="officer-message" class="dialog-container hidden">
+        <div id="officer-emoji">👮</div>
+        <div id="speech-bubble">You must have a passport to travel</div>
+    </div>
+
+    <div id="passport-dialog" class="dialog-container hidden green-felt-bg">
+        <h3>Passport Office</h3>
+        <button id="apply-passport-btn" class="button-5" role="button">Apply for passport $200</button>
+    </div>
+
+    <div id="restaurant-dialog" class="dialog-container hidden green-felt-bg">
+        <h3 class="elegant-title" style="font-size: 36px;">Fajr's Café</h3>
+        <div id="restaurant-controls">
+            <button id="work-shift-btn" class="button-5" role="button">Work Shift</button>
+            <button id="manage-staff-btn" class="button-5" role="button">Manage Staff</button>
+            <button id="memory-match-btn" class="button-5" role="button" data-unlock-text="Visit 2 Cities">Memory Match</button>
+            <button id="gem-swap-btn" class="button-5" role="button" data-unlock-text="Visit 5 Cities">Gem Swap</button>
+        </div>
+    </div>
+
+    <div id="minigame-dialog" class="dialog-container hidden green-felt-bg">
+        <div id="exit-dialog-btn" data-dialog="minigame-dialog">X</div>
+        <div id="minigame-container">
+             <h2 class="elegant-title">Fajr's Café</h2>
+            <div id="minigame-header">
+                <h3 id="minigame-title">Cooking Job</h3>
+                <p id="minigame-instructions">Drag food to the bag and earn money!</p>
+            </div>
+            <div id="minigame-content">
+                <div id="fries-container"></div>
+                <div id="bag-dropzone">🛍️</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="staff-dialog" class="dialog-container hidden">
+        <div id="exit-dialog-btn" data-dialog="staff-dialog">X</div>
+        <h3>Manage Staff</h3>
+        <p id="staff-status">You have no employees.</p>
+        <div id="staff-controls">
+            <button id="hire-worker-btn" class="action-button">Hire Chef ($1000)</button>
+            <button id="promote-worker-btn" class="action-button hidden">Promote Chef</button>
+        </div>
+    </div>
+    
+    <!-- NEW: Memory Game Dialog -->
+    <div id="memory-game-dialog" class="dialog-container hidden green-felt-bg">
+        <div id="exit-dialog-btn" data-dialog="memory-game-dialog">X</div>
+        <h3>Memory Match</h3>
+        <p>Match pairs of souvenirs and recipes! (+$50 per match)</p>
+        <div id="memory-game-grid"></div>
+    </div>
+
+    <!-- NEW: Gem Swap Game Dialog -->
+    <div id="gem-swap-dialog" class="dialog-container hidden green-felt-bg">
+        <div id="exit-dialog-btn" data-dialog="gem-swap-dialog">X</div>
+        <h3>Gem Swap</h3>
+        <p>Swap gems to match 3 or more! (+$10 per gem)</p>
+        <div id="gem-swap-grid"></div>
+    </div>
+
+
+    <div id="settings-dialog" class="dialog-container hidden">
+        <div id="exit-dialog-btn" data-dialog="settings-dialog">X</div>
+        <h3>Settings</h3>
+        <div class="settings-row">
+            <label for="player-name-input">Your Name</label>
+            <input type="text" id="player-name-input" value="Person" maxlength="15">
+        </div>
+        <div id="settings-controls">
+            <button id="sfx-mute-btn" class="button-5" role="button">🔊</button>
+            <button id="music-mute-btn" class="button-5" role="button">🎵</button>
+        </div>
+        <button id="settings-ok-btn" class="button-5" style="margin-top: 20px;">OK</button>
+    </div>
+
+    <div id="flights-dialog" class="dialog-container hidden">
+        <h3>Select a Destination</h3>
+        <div id="flights-container"></div>
+    </div>
+
+    <div id="restaurant-view-container" class="dialog-container hidden">
+        <div id="exit-dialog-btn" data-dialog="restaurant-view-container">X</div>
+        <img id="restaurant-image" src="" alt="Restaurant View">
+    </div>
+
+    <div id="gift-shop-dialog" class="dialog-container hidden red-felt-bg">
+        <h3>Gift Shop</h3>
+        <div id="gift-shop-items-container"></div>
+        <button id="exit-gift-shop-btn" class="action-button">Close</button>
+    </div>
+    
+    <div id="plane-animation" class="dialog-container hidden">
+        <div id="flight-animation-wrapper">
+             <span id="globe-emoji">🌍</span>
+             <span id="plane-emoji-anim">✈️</span>
+        </div>
+    </div>
+
+    <div id="success-message" class="dialog-container hidden">
+        <div id="success-emoji">✅</div>
+        <p id="success-text"></p>
+    </div>
+
+    <div id="passport-celebration">
+        <span id="celebration-passport-emoji">🛂</span>
+    </div>
+
+    <div id="visa-animation" class="dialog-container hidden">
+        <div id="visa-animation-container">
+            <span id="visa-passport-emoji">🛂</span>
+            <span id="visa-sticker-emoji"></span>
+        </div>
+    </div>
+
+    <div id="recipe-celebration" class="hidden"></div>
+    <div id="memory-game-win-celebration" class="hidden"></div>
+
+
+    <!-- Worker Animation UI -->
+    <div id="worker-animation-container" class="hidden">
+        <h2 class="elegant-title">Fajr's Café</h2>
+        <div id="worker-animation-row">
+            <span id="worker-anim-chef">👨‍🍳</span>
+            <span id="worker-anim-bag">🛍️</span>
+        </div>
+    </div>
+
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
