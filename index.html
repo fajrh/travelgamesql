@@ -1476,6 +1476,95 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        /* --- MOBILE DRAG + MOMENTUM SUPPORT --- */
+#minigame-content,
+.fry {
+  touch-action: none; /* allow smooth pointer events on touch */
+}
+
+/* Sleeker café panel + autoscale */
+#minigame-container {
+  width: clamp(280px, 70vw, 420px);
+  padding: 14px;
+  gap: 12px;
+}
+
+/* Smaller title inside minigame dialog */
+#minigame-dialog .elegant-title {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+/* Hide "Cooking Job" label per request */
+#minigame-title { 
+  display: none;
+}
+
+/* Tighter minigame header/instructions */
+#minigame-instructions {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+/* Bag feedback + toss feel */
+#bag-dropzone {
+  font-size: clamp(64px, 11vw, 80px);
+  padding: 14px;
+  border-radius: 50%;
+  transition: transform 0.15s, background-color 0.15s;
+  will-change: transform;
+}
+#bag-dropzone.over {
+  transform: scale(1.12);
+  background-color: rgba(255,255,0,0.22);
+}
+
+/* Fry visual + fade-in respawn */
+.fry {
+  position: absolute;            /* absolute so we can toss with momentum */
+  font-size: clamp(32px, 9vw, 42px);
+  cursor: grab;
+  transition: transform 0.08s, opacity 0.2s;
+  will-change: transform, left, top;
+}
+.fry.is-dragging { opacity: 0.6; cursor: grabbing; }
+.fry.fade-in { animation: fry-fade-in 220ms ease-out; }
+@keyframes fry-fade-in {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Make the restaurant hub smaller & neater */
+#restaurant-dialog {
+  padding: 16px;
+}
+#restaurant-dialog .elegant-title {
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+#restaurant-controls { gap: 10px; }
+
+/* FIX: keep controls pinned to bottom of SCREEN on all devices */
+#home-bottom-left-controls {
+  position: fixed;  /* was absolute in desktop; now always fixed to screen */
+  left: clamp(10px, 4vw, 24px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Ensure the chat bubble + chat panel don’t force page scroll */
+body { overflow: hidden; } /* keep full-screen playfield without scrolling */
+
+/* Slightly reduce overall dialog max width for overlap reduction */
+.dialog-container {
+  max-width: min(90vw, 480px);
+  width: min(90vw, 480px);
+  padding: 18px;
+}
 
     </style>
 <script type="importmap">
@@ -1594,9 +1683,10 @@
         <div id="minigame-container">
              <h2 class="elegant-title">Fajr's Café</h2>
             <div id="minigame-header">
-                <h3 id="minigame-title">Cooking Job</h3>
-                <p id="minigame-instructions">Drag food to the bag and earn money!</p>
-            </div>
+  <h3 id="minigame-title"></h3> <!-- hidden via CSS -->
+  <p id="minigame-instructions">Drag food to the bag and earn money!</p>
+</div>
+
             <div id="minigame-content">
                 <div id="fries-container"></div>
                 <div id="bag-dropzone">🛍️</div>
