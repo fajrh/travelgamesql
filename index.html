@@ -542,47 +542,84 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            border: 2px dashed #9370db;
-            border-radius: 10px;
-            padding: 20px;
-            width: 400px;
+            gap: 12px;
+            border: 1px solid rgba(240, 230, 140, 0.45);
+            border-radius: 14px;
+            padding: 16px 18px 18px;
+            width: min(320px, 90vw);
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.4);
         }
-        #minigame-header { text-align: center; }
-        #minigame-content { display: flex; justify-content: space-around; align-items: center; width: 100%; min-height: 150px; position: relative;}
-        #fries-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;}
-        .fry { 
-            font-size: 40px; 
+        #minigame-header {
+            text-align: center;
+            width: 100%;
+        }
+        #minigame-header p {
+            margin: 0;
+            font-size: 0.92rem;
+            color: #F8F0C6;
+            opacity: 0.92;
+        }
+        #minigame-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            min-height: 140px;
+            gap: 12px;
+        }
+        #fries-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(70px, 1fr));
+            gap: 10px;
+            justify-items: center;
+            width: 100%;
+            flex: 1;
+        }
+        .fry {
+            --tx: 0px;
+            --ty: 0px;
+            --scale: 1;
+            font-size: 36px;
             cursor: grab;
             display: flex;
             flex-direction: column;
             align-items: center;
             line-height: 1;
-            transition: transform 0.2s, opacity 0.2s;
-            position: relative; /* For animation */
+            transition: transform 0.18s ease, opacity 0.22s ease;
+            transform: translate(var(--tx), var(--ty)) scale(var(--scale));
         }
-        .fry:hover { transform: scale(1.1); }
+        .fry:hover { --scale: 1.08; }
         .fry.is-dragging {
-            opacity: 0.5;
+            opacity: 0.85;
             cursor: grabbing;
+            --scale: 1.1;
+        }
+        .fry.fry--spawning {
+            opacity: 0;
+            --scale: 0.85;
         }
         .food-label {
             font-family: Arial, sans-serif;
-            font-size: 8pt;
+            font-size: 10px;
             color: #F0E68C;
             margin-top: 2px;
             text-shadow: 1px 1px 1px black;
         }
-        #bag-dropzone { 
-            font-size: 80px; 
-            padding: 20px; 
-            border-radius: 50%;
-            transition: transform 0.2s, background-color 0.2s;
+        #bag-dropzone {
+            font-size: 68px;
+            padding: 16px;
+            border-radius: 18px;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            background: rgba(0, 0, 0, 0.25);
+            box-shadow: 0 0 0 2px rgba(240, 230, 140, 0.25);
+            flex-shrink: 0;
         }
         #bag-dropzone.over {
-            transform: scale(1.1);
-            background-color: rgba(255, 255, 0, 0.2);
+            transform: scale(1.08);
+            background-color: rgba(255, 255, 0, 0.18);
         }
+        #minigame-title:empty { display: none; }
         
         /* Staff & Menu Dialogs */
         #restaurant-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
@@ -1594,8 +1631,8 @@
         <div id="minigame-container">
              <h2 class="elegant-title">Fajr's Café</h2>
             <div id="minigame-header">
-                <h3 id="minigame-title">Cooking Job</h3>
-                <p id="minigame-instructions">Drag food to the bag and earn money!</p>
+                <h3 id="minigame-title"></h3>
+                <p id="minigame-instructions">Swipe or toss the orders into the bag to serve travelers.</p>
             </div>
             <div id="minigame-content">
                 <div id="fries-container"></div>
