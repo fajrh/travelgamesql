@@ -1126,9 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     food.style.transition = 'none';
                     try {
                         food.setPointerCapture(event.pointerId);
-                    } catch {
-                        /* noop */
-                    }
+                    } catch {}
                     event.preventDefault();
                 }
             });
@@ -1187,9 +1185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (food.hasPointerCapture(event.pointerId)) {
                         food.releasePointerCapture(event.pointerId);
                     }
-                } catch {
-                    /* noop */
-                }
+                } catch {}
             });
 
             food.addEventListener('pointercancel', (event) => {
@@ -1211,9 +1207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (food.hasPointerCapture(event.pointerId)) {
                         food.releasePointerCapture(event.pointerId);
                     }
-                } catch {
-                    /* noop */
-                }
+                } catch {}
             });
 
             food.addEventListener('pointermove', (event) => {
@@ -1750,13 +1744,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     let itemsHTML = '';
                     if (flight.souvenirs) {
                         itemsHTML += flight.souvenirs.map(item => `
-                            <button class="gift-item button-14" role="button" data-name="${item.name}" data-type="souvenir" id="souvenir-btn-${item.name.replace(/\s+/g, '-')}">
+                            <button class="gift-item button-14" role="button" data-name="${item.name}" data-type="souvenir" id="souvenir-btn-${item.name.replace(/\s+/g, '-') }">
                                 ${item.emoji} ${item.name}<br>
                                 $${item.cost}
                             </button>
                         `).join('');
                     }
-                     itemsHTML += `<button class="gift-item button-14 recipe-item" role="button" data-name="${flight.recipe.name}" data-type="recipe" id="recipe-btn-${flight.recipe.name.replace(/\s+/g, '-')}">
+                     itemsHTML += `<button class="gift-item button-14 recipe-item" role="button" data-name="${flight.recipe.name}" data-type="recipe" id="recipe-btn-${flight.recipe.name.replace(/\s+/g, '-') }">
                         📖 ${flight.recipe.name}<br>
                         $${flight.recipe.cost}
                     </button>`;
@@ -1840,7 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const flightButton = target.closest('.button-42');
         
         if (flightButton) {
-            const city = flightButton.getAttribute('data-city');
+            const city = (flightButton as HTMLElement).getAttribute('data-city');
             const flight = flightData.find(f => f.city === city);
             if (flight) {
                 flightTooltip.innerHTML = `<strong>${flight.airline}</strong><br>Airport: ${flight.airport}<br>Time: ${flight.time}h`;
