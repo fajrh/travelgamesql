@@ -169,7 +169,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            z-index: 3;
+            z-index: 40;
         }
 
         #luggage-container, #settings-container {
@@ -259,6 +259,7 @@
             overflow-y: auto;
             border: 2px solid #9370db; /* Medium Purple Border */
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            box-sizing: border-box;
         }
         
         .dialog-container h3 {
@@ -940,6 +941,15 @@
 
 
         /* Settings Dialog */
+        #settings-dialog {
+            width: min(90vw, 420px);
+        }
+
+        .dialog-container {
+            max-width: min(92vw, 520px);
+            width: min(92vw, 520px);
+        }
+
         #settings-dialog .settings-row {
             display: flex;
             flex-direction: column;
@@ -947,9 +957,11 @@
             gap: 10px;
             margin-bottom: 20px;
         }
-        #settings-dialog label {
+        #settings-dialog label,
+        #settings-dialog .settings-heading {
             font-weight: bold;
             color: #483d8b;
+            text-align: center;
         }
         #settings-dialog input {
             padding: 8px;
@@ -962,6 +974,53 @@
             font-size: 24px;
             padding: 10px;
             min-height: auto;
+        }
+
+        #player-emoji-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .emoji-option-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 26px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .emoji-option-button:hover,
+        .emoji-option-button:focus-visible {
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 4px 10px rgba(72, 61, 139, 0.3);
+        }
+
+        .emoji-option-button.selected {
+            border-color: #9370db;
+            box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.35);
+        }
+
+        @media (max-width: 600px) {
+            .dialog-container {
+                padding: 18px;
+                width: min(92vw, 360px);
+            }
+
+            .emoji-option-button {
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
+            }
         }
 
         /* NEW: Memory Game Styles */
@@ -1258,10 +1317,17 @@
             }
 
             #home-bottom-left-controls {
+                position: fixed;
                 bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
                 left: clamp(12px, 6vw, 48px);
                 transform: none;
-                gap: 12px;
+                flex-direction: column-reverse;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            #home-bottom-left-controls > * {
+                transform: none;
             }
 
             #luggage-container, #settings-container {
@@ -1281,8 +1347,8 @@
                 width: min(360px, calc(100vw - 32px));
                 left: clamp(12px, 6vw, 48px);
                 transform: none;
-                bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
-                height: min(280px, 36vh);
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 236px);
+                height: min(260px, 34vh);
             }
 
             #chat-history {
@@ -1346,9 +1412,9 @@
             }
 
             #chat-container {
-                height: min(220px, 34vh);
-                bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
-                width: min(94vw, 340px);
+                height: min(210px, 32vh);
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 228px);
+                width: min(94vw, 328px);
             }
 
             #chat-history {
@@ -1571,6 +1637,19 @@
         <div class="settings-row">
             <label for="player-name-input">Your Name</label>
             <input type="text" id="player-name-input" value="Person" maxlength="15">
+        </div>
+        <div class="settings-row">
+            <span class="settings-heading">Choose Your Traveler</span>
+            <div id="player-emoji-options" role="group" aria-label="Choose your traveler emoji">
+                <button type="button" class="emoji-option-button" data-emoji-option="🧍">🧍</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧕">🧕</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍✈️">🧑‍✈️</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="👩‍🦽">👩‍🦽</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🦯">🧑‍🦯</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧳">🧳</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🕺">🕺</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="💃">💃</button>
+            </div>
         </div>
         <div id="settings-controls">
             <button id="sfx-mute-btn" class="button-5" role="button">🔊</button>
