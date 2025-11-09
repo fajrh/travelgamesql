@@ -49,6 +49,8 @@ app.get('/db-ping', async (_req, res) => {
 app.get(['/state', '/chatlog.txt'], async (_req, res) => {
   try {
     const p = await ensureSchemaReady();
+
+    // players query (prepared is fine)
     const [players] = await p.execute(
       `SELECT p.id, p.name, p.emoji, c.x, c.y, c.zone, c.city, c.direction, c.lastUpdated
        FROM coordinates c
@@ -56,9 +58,11 @@ app.get(['/state', '/chatlog.txt'], async (_req, res) => {
        WHERE c.lastUpdated > ?`,
       [Date.now() - PLAYER_TIMEOUT]
     );
-    const [chatRows] = await p.execute(
-      'SELECT * FROM chatlog ORDER BY timestamp DESC LIMIT ?',
-      [CHAT_HISTORY_LIMIT]
+
+    // ✅ FIX: don't bind LIMIT using prepared statements; inline a clamped integer and use .query()
+    const limit = clampInt(CHAT_HISTORY_LIMIT, 1, 500, 50);
+    const [chatRows] = await p.query(
+      `SELECT * FROM chatlog ORDER BY timestamp DESC LIMIT ${limit}`
     );
 
     res.status(200).json({
@@ -108,8 +112,8 @@ app.post('/update', async (req, res) => {
         lastUpdated = VALUES(lastUpdated);
     `;
 
-    await p.execute(playerSql, [id, name, emoji]);
-    await p.execute(coordinatesSql, [id, x, y, zone, city, direction, now]);
+    await p.execute(playerSql, [id, name, emoji ?? null]);
+    await p.execute(coordinatesSql, [id, x, y, zone ?? null, city ?? null, direction ?? null, now]);
 
     res.status(200).json({ status: 'ok' });
   } catch (error) {
@@ -157,10 +161,11 @@ app.post('/chat', async (req, res) => {
     const zoneValue = typeof zone === 'string' ? zone : null;
     const cityValue = typeof city === 'string' ? city : null;
 
-    await p.execute(chatSql, [messageId, playerId, name, message, zone, city, timestamp]);
+    await p.execute(chatSql, [messageId, playerId, name, message, zoneValue, cityValue, timestamp]);
     const [coordUpdateResult] = await p.execute(
       coordinatesUpdateSql, [timestamp, zoneValue, cityValue, playerId]
     );
+
     if (coordUpdateResult.affectedRows === 0) {
       await p.execute(coordinatesInsertSql, [playerId, zoneValue, cityValue, timestamp]);
     }
@@ -334,4 +339,10 @@ function sanitiseMessage(message) {
 function clampNumber(value, min, max, fallback = 0) {
   if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
   return Math.min(Math.max(value, min), max);
+}
+
+function clampInt(value, min, max, fallback = min) {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(n, min), max) | 0;
 }
