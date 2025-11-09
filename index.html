@@ -169,7 +169,7 @@
             display: flex;
             align-items: center;
             gap: 15px;
-            z-index: 3;
+            z-index: 40;
         }
 
         #luggage-container, #settings-container {
@@ -259,6 +259,7 @@
             overflow-y: auto;
             border: 2px solid #9370db; /* Medium Purple Border */
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            box-sizing: border-box;
         }
         
         .dialog-container h3 {
@@ -541,47 +542,84 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            border: 2px dashed #9370db;
-            border-radius: 10px;
-            padding: 20px;
-            width: 400px;
+            gap: 12px;
+            border: 1px solid rgba(240, 230, 140, 0.45);
+            border-radius: 14px;
+            padding: 16px 18px 18px;
+            width: min(320px, 90vw);
+            background: rgba(0, 0, 0, 0.35);
+            box-shadow: 0 16px 30px rgba(0, 0, 0, 0.4);
         }
-        #minigame-header { text-align: center; }
-        #minigame-content { display: flex; justify-content: space-around; align-items: center; width: 100%; min-height: 150px; position: relative;}
-        #fries-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;}
-        .fry { 
-            font-size: 40px; 
+        #minigame-header {
+            text-align: center;
+            width: 100%;
+        }
+        #minigame-header p {
+            margin: 0;
+            font-size: 0.92rem;
+            color: #F8F0C6;
+            opacity: 0.92;
+        }
+        #minigame-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            min-height: 140px;
+            gap: 12px;
+        }
+        #fries-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(70px, 1fr));
+            gap: 10px;
+            justify-items: center;
+            width: 100%;
+            flex: 1;
+        }
+        .fry {
+            --tx: 0px;
+            --ty: 0px;
+            --scale: 1;
+            font-size: 36px;
             cursor: grab;
             display: flex;
             flex-direction: column;
             align-items: center;
             line-height: 1;
-            transition: transform 0.2s, opacity 0.2s;
-            position: relative; /* For animation */
+            transition: transform 0.18s ease, opacity 0.22s ease;
+            transform: translate(var(--tx), var(--ty)) scale(var(--scale));
         }
-        .fry:hover { transform: scale(1.1); }
+        .fry:hover { --scale: 1.08; }
         .fry.is-dragging {
-            opacity: 0.5;
+            opacity: 0.85;
             cursor: grabbing;
+            --scale: 1.1;
+        }
+        .fry.fry--spawning {
+            opacity: 0;
+            --scale: 0.85;
         }
         .food-label {
             font-family: Arial, sans-serif;
-            font-size: 8pt;
+            font-size: 10px;
             color: #F0E68C;
             margin-top: 2px;
             text-shadow: 1px 1px 1px black;
         }
-        #bag-dropzone { 
-            font-size: 80px; 
-            padding: 20px; 
-            border-radius: 50%;
-            transition: transform 0.2s, background-color 0.2s;
+        #bag-dropzone {
+            font-size: 68px;
+            padding: 16px;
+            border-radius: 18px;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+            background: rgba(0, 0, 0, 0.25);
+            box-shadow: 0 0 0 2px rgba(240, 230, 140, 0.25);
+            flex-shrink: 0;
         }
         #bag-dropzone.over {
-            transform: scale(1.1);
-            background-color: rgba(255, 255, 0, 0.2);
+            transform: scale(1.08);
+            background-color: rgba(255, 255, 0, 0.18);
         }
+        #minigame-title:empty { display: none; }
         
         /* Staff & Menu Dialogs */
         #restaurant-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
@@ -940,6 +978,15 @@
 
 
         /* Settings Dialog */
+        #settings-dialog {
+            width: min(90vw, 420px);
+        }
+
+        .dialog-container {
+            max-width: min(92vw, 520px);
+            width: min(92vw, 520px);
+        }
+
         #settings-dialog .settings-row {
             display: flex;
             flex-direction: column;
@@ -947,9 +994,11 @@
             gap: 10px;
             margin-bottom: 20px;
         }
-        #settings-dialog label {
+        #settings-dialog label,
+        #settings-dialog .settings-heading {
             font-weight: bold;
             color: #483d8b;
+            text-align: center;
         }
         #settings-dialog input {
             padding: 8px;
@@ -962,6 +1011,53 @@
             font-size: 24px;
             padding: 10px;
             min-height: auto;
+        }
+
+        #player-emoji-options {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            max-width: 100%;
+        }
+
+        .emoji-option-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 26px;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }
+
+        .emoji-option-button:hover,
+        .emoji-option-button:focus-visible {
+            transform: translateY(-2px) scale(1.08);
+            box-shadow: 0 4px 10px rgba(72, 61, 139, 0.3);
+        }
+
+        .emoji-option-button.selected {
+            border-color: #9370db;
+            box-shadow: 0 0 0 3px rgba(147, 112, 219, 0.35);
+        }
+
+        @media (max-width: 600px) {
+            .dialog-container {
+                padding: 18px;
+                width: min(92vw, 360px);
+            }
+
+            .emoji-option-button {
+                width: 40px;
+                height: 40px;
+                font-size: 22px;
+            }
         }
 
         /* NEW: Memory Game Styles */
@@ -1258,10 +1354,17 @@
             }
 
             #home-bottom-left-controls {
+                position: fixed;
                 bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
                 left: clamp(12px, 6vw, 48px);
                 transform: none;
-                gap: 12px;
+                flex-direction: column-reverse;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            #home-bottom-left-controls > * {
+                transform: none;
             }
 
             #luggage-container, #settings-container {
@@ -1281,8 +1384,8 @@
                 width: min(360px, calc(100vw - 32px));
                 left: clamp(12px, 6vw, 48px);
                 transform: none;
-                bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
-                height: min(280px, 36vh);
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 236px);
+                height: min(260px, 34vh);
             }
 
             #chat-history {
@@ -1346,9 +1449,9 @@
             }
 
             #chat-container {
-                height: min(220px, 34vh);
-                bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
-                width: min(94vw, 340px);
+                height: min(210px, 32vh);
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 228px);
+                width: min(94vw, 328px);
             }
 
             #chat-history {
@@ -1528,8 +1631,8 @@
         <div id="minigame-container">
              <h2 class="elegant-title">Fajr's Café</h2>
             <div id="minigame-header">
-                <h3 id="minigame-title">Cooking Job</h3>
-                <p id="minigame-instructions">Drag food to the bag and earn money!</p>
+                <h3 id="minigame-title"></h3>
+                <p id="minigame-instructions">Swipe or toss the orders into the bag to serve travelers.</p>
             </div>
             <div id="minigame-content">
                 <div id="fries-container"></div>
@@ -1571,6 +1674,19 @@
         <div class="settings-row">
             <label for="player-name-input">Your Name</label>
             <input type="text" id="player-name-input" value="Person" maxlength="15">
+        </div>
+        <div class="settings-row">
+            <span class="settings-heading">Choose Your Traveler</span>
+            <div id="player-emoji-options" role="group" aria-label="Choose your traveler emoji">
+                <button type="button" class="emoji-option-button" data-emoji-option="🧍">🧍</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧕">🧕</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍✈️">🧑‍✈️</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="👩‍🦽">👩‍🦽</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧑‍🦯">🧑‍🦯</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🧳">🧳</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="🕺">🕺</button>
+                <button type="button" class="emoji-option-button" data-emoji-option="💃">💃</button>
+            </div>
         </div>
         <div id="settings-controls">
             <button id="sfx-mute-btn" class="button-5" role="button">🔊</button>

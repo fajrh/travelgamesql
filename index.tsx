@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gemSwapBtn = document.getElementById('gem-swap-btn') as HTMLButtonElement;
     const friesContainer = document.getElementById('fries-container') as HTMLElement;
     const bagDropzone = document.getElementById('bag-dropzone') as HTMLElement;
-    const minigameTitle = document.getElementById('minigame-title') as HTMLElement;
+    const minigameTitle = document.getElementById('minigame-title');
     const staffStatus = document.getElementById('staff-status') as HTMLElement;
     const hireWorkerBtn = document.getElementById('hire-worker-btn') as HTMLButtonElement;
     const promoteWorkerBtn = document.getElementById('promote-worker-btn') as HTMLButtonElement;
@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sfxMuteBtn = document.getElementById('sfx-mute-btn') as HTMLButtonElement;
     const musicMuteBtn = document.getElementById('music-mute-btn') as HTMLButtonElement;
     const settingsOkBtn = document.getElementById('settings-ok-btn') as HTMLButtonElement;
+    const emojiOptionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-emoji-option]'));
 
     // Multiplayer and Chat Elements
     const otherPlayersContainer = document.getElementById('other-players-container') as HTMLElement;
@@ -1019,7 +1020,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function completeBagDrop(food: HTMLElement) {
+    type BagDropOptions = {
+        velocity?: number;
+    };
+
+    function completeBagDrop(food: HTMLElement, options?: BagDropOptions) {
         const reward = parseInt(food.dataset.reward ?? '0', 10);
         if (Number.isNaN(reward) || reward <= 0) return;
 
@@ -1027,22 +1032,49 @@ document.addEventListener('DOMContentLoaded', () => {
             draggedItem = null;
         }
 
+        const bagRect = bagDropzone.getBoundingClientRect();
+        const bagCenterX = bagRect.left + bagRect.width / 2;
+        const bagCenterY = bagRect.top + bagRect.height / 2;
+        const foodRect = food.getBoundingClientRect();
+        const foodCenterX = foodRect.left + foodRect.width / 2;
+        const foodCenterY = foodRect.top + foodRect.height / 2;
+        const currentTx = parseFloat(food.style.getPropertyValue('--tx') || '0');
+        const currentTy = parseFloat(food.style.getPropertyValue('--ty') || '0');
+        const targetTx = currentTx + (bagCenterX - foodCenterX);
+        const targetTy = currentTy + (bagCenterY - foodCenterY);
+
+        const velocity = options?.velocity ?? 0;
+        const travelDuration = Math.max(200, Math.min(420, 420 - velocity * 120));
+
         food.classList.remove('is-dragging');
+        food.style.pointerEvents = 'none';
+        food.style.transition = `transform ${travelDuration}ms cubic-bezier(0.22, 0.7, 0.32, 1), opacity ${travelDuration}ms ease-out`;
+        food.style.setProperty('--tx', `${targetTx}px`);
+        food.style.setProperty('--ty', `${targetTy}px`);
+        food.style.setProperty('--scale', '0.45');
+        food.style.opacity = '0';
+
         updateScore(reward);
         playSound('earn');
         showEarningToast(reward);
-        food.remove();
-        setTimeout(createFoodItem, 80);
+
+        const respawnDelay = 1000;
+        setTimeout(() => food.remove(), travelDuration + 20);
+        setTimeout(() => {
+            if (availableFoods.length === 0) return;
+            createFoodItem(true);
+        }, respawnDelay);
     }
 
-    function createFoodItem() {
+    function createFoodItem(playSpawnAnimation = false) {
         if (availableFoods.length === 0) return;
         const foodData = availableFoods[Math.floor(Math.random() * availableFoods.length)];
 
         const food = document.createElement('div');
         food.className = 'fry';
         food.dataset.reward = foodData.reward.toString();
-        food.draggable = true;
+        const enableNativeDrag = !supportsCoarsePointer;
+        food.draggable = enableNativeDrag;
         
         const emoji = document.createElement('span');
         emoji.textContent = foodData.emoji;
@@ -1054,76 +1086,175 @@ document.addEventListener('DOMContentLoaded', () => {
         food.appendChild(emoji);
         food.appendChild(label);
 
-        food.addEventListener('dragstart', (e) => {
-            draggedItem = food;
-            e.dataTransfer!.setData('text/plain', food.dataset.reward!);
-            setTimeout(() => {
-                food.classList.add('is-dragging');
-            }, 0);
-        });
+        if (enableNativeDrag) {
+            food.addEventListener('dragstart', (e) => {
+                draggedItem = food;
+                e.dataTransfer!.setData('text/plain', food.dataset.reward!);
+                setTimeout(() => {
+                    food.classList.add('is-dragging');
+                }, 0);
+            });
 
-        food.addEventListener('dragend', () => {
-            food.classList.remove('is-dragging');
-            draggedItem = null;
-        });
+            food.addEventListener('dragend', () => {
+                food.classList.remove('is-dragging');
+                draggedItem = null;
+            });
+        }
 
         if (supportsCoarsePointer) {
             let pointerStart: { x: number; y: number; time: number } | null = null;
+            let lastMove: { x: number; y: number; time: number } | null = null;
 
-            const handleQuickDrop = (clientX: number, clientY: number) => {
-                if (!pointerStart) return;
-                const { x, y, time } = pointerStart;
-                const elapsed = Date.now() - time;
-                const travel = Math.hypot(clientX - x, clientY - y);
+            const isInsideBag = (clientX: number, clientY: number, padding = 0) => {
                 const bagRect = bagDropzone.getBoundingClientRect();
-                const bagCenterX = bagRect.left + bagRect.width / 2;
-                const bagCenterY = bagRect.top + bagRect.height / 2;
-                const distanceToBag = Math.hypot(clientX - bagCenterX, clientY - bagCenterY);
-                const endedInsideBag =
-                    clientX >= bagRect.left - 24 &&
-                    clientX <= bagRect.right + 24 &&
-                    clientY >= bagRect.top - 24 &&
-                    clientY <= bagRect.bottom + 24;
-                const quickFlick = elapsed < 350 && travel > 30;
-                const flickedTowardBag = distanceToBag < Math.max(120, bagRect.width);
-
-                if (endedInsideBag || (quickFlick && flickedTowardBag)) {
-                    bagDropzone.classList.add('over');
-                    completeBagDrop(food);
-                    setTimeout(() => bagDropzone.classList.remove('over'), 150);
-                }
+                return (
+                    clientX >= bagRect.left - padding &&
+                    clientX <= bagRect.right + padding &&
+                    clientY >= bagRect.top - padding &&
+                    clientY <= bagRect.bottom + padding
+                );
             };
+
+            food.style.touchAction = 'none';
 
             food.addEventListener('pointerdown', (event) => {
                 if (event.pointerType === 'touch' || event.pointerType === 'pen') {
-                    pointerStart = { x: event.clientX, y: event.clientY, time: Date.now() };
+                    pointerStart = { x: event.clientX, y: event.clientY, time: performance.now() };
+                    lastMove = pointerStart;
+                    draggedItem = food;
+                    food.classList.add('is-dragging');
+                    food.style.transition = 'none';
+                    try {
+                        food.setPointerCapture(event.pointerId);
+                    } catch {
+                        /* noop */
+                    }
+                    event.preventDefault();
                 }
             });
 
             food.addEventListener('pointerup', (event) => {
-                if ((event.pointerType === 'touch' || event.pointerType === 'pen') && pointerStart) {
-                    handleQuickDrop(event.clientX, event.clientY);
+                if (!pointerStart || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) {
+                    return;
                 }
+
+                const releaseInfo = lastMove ?? { x: event.clientX, y: event.clientY, time: performance.now() };
+                const totalTime = Math.max(1, releaseInfo.time - pointerStart.time);
+                const totalDistance = Math.hypot(releaseInfo.x - pointerStart.x, releaseInfo.y - pointerStart.y);
+                const velocity = totalDistance / totalTime;
+                const bagRect = bagDropzone.getBoundingClientRect();
+                const bagCenterX = bagRect.left + bagRect.width / 2;
+                const bagCenterY = bagRect.top + bagRect.height / 2;
+
+                const releaseVectorX = releaseInfo.x - pointerStart.x;
+                const releaseVectorY = releaseInfo.y - pointerStart.y;
+                const releaseMagnitude = Math.hypot(releaseVectorX, releaseVectorY);
+                const toBagX = bagCenterX - releaseInfo.x;
+                const toBagY = bagCenterY - releaseInfo.y;
+                const toBagDistance = Math.hypot(toBagX, toBagY);
+                const directionScore =
+                    releaseMagnitude > 0 && toBagDistance > 0
+                        ? (releaseVectorX * toBagX + releaseVectorY * toBagY) / (releaseMagnitude * toBagDistance)
+                        : 0;
+
+                const quickFlick = totalTime < 450 && releaseMagnitude > 30 && directionScore > 0.15 && toBagDistance < Math.max(180, bagRect.width * 1.6);
+                const inBag = isInsideBag(releaseInfo.x, releaseInfo.y, 32);
+
+                bagDropzone.classList.toggle('over', inBag);
+
+                if (inBag || quickFlick) {
+                    bagDropzone.classList.add('over');
+                    completeBagDrop(food, { velocity });
+                    setTimeout(() => bagDropzone.classList.remove('over'), 220);
+                } else {
+                    food.classList.remove('is-dragging');
+                    food.style.transition = 'transform 0.22s ease';
+                    food.style.setProperty('--tx', '0px');
+                    food.style.setProperty('--ty', '0px');
+                    setTimeout(() => {
+                        food.style.transition = '';
+                        food.style.removeProperty('--tx');
+                        food.style.removeProperty('--ty');
+                    }, 220);
+                    bagDropzone.classList.remove('over');
+                }
+
                 pointerStart = null;
+                lastMove = null;
+                draggedItem = null;
+                food.classList.remove('is-dragging');
+                try {
+                    if (food.hasPointerCapture(event.pointerId)) {
+                        food.releasePointerCapture(event.pointerId);
+                    }
+                } catch {
+                    /* noop */
+                }
             });
 
-            food.addEventListener('pointercancel', () => {
+            food.addEventListener('pointercancel', (event) => {
+                if (!pointerStart) return;
                 pointerStart = null;
+                lastMove = null;
+                food.classList.remove('is-dragging');
+                food.style.transition = 'transform 0.22s ease';
+                food.style.setProperty('--tx', '0px');
+                food.style.setProperty('--ty', '0px');
+                setTimeout(() => {
+                    food.style.transition = '';
+                    food.style.removeProperty('--tx');
+                    food.style.removeProperty('--ty');
+                }, 220);
+                draggedItem = null;
+                bagDropzone.classList.remove('over');
+                try {
+                    if (food.hasPointerCapture(event.pointerId)) {
+                        food.releasePointerCapture(event.pointerId);
+                    }
+                } catch {
+                    /* noop */
+                }
             });
+
+            food.addEventListener('pointermove', (event) => {
+                if (!pointerStart || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) {
+                    return;
+                }
+
+                const deltaX = event.clientX - pointerStart.x;
+                const deltaY = event.clientY - pointerStart.y;
+
+                food.style.setProperty('--tx', `${deltaX}px`);
+                food.style.setProperty('--ty', `${deltaY}px`);
+
+                lastMove = { x: event.clientX, y: event.clientY, time: performance.now() };
+                const insideBag = isInsideBag(event.clientX, event.clientY, 24);
+                bagDropzone.classList.toggle('over', insideBag);
+                event.preventDefault();
+            }, { passive: false });
         }
 
         friesContainer.appendChild(food);
+
+        if (playSpawnAnimation) {
+            food.classList.add('fry--spawning');
+            requestAnimationFrame(() => {
+                food.classList.remove('fry--spawning');
+            });
+        }
     }
-    
+
     function setupMinigame() {
         if (!hasPlayedMinigame) {
             speak("put the fries in the bag");
             hasPlayedMinigame = true;
         }
-        minigameTitle.textContent = `Cooking Job`;
+        if (minigameTitle) {
+            minigameTitle.textContent = '';
+        }
         bagDropzone.textContent = '🛍️';
         friesContainer.innerHTML = '';
-        for (let i = 0; i < 4; i++) createFoodItem();
+        for (let i = 0; i < 4; i++) createFoodItem(true);
     }
 
     function animateWorker() {
@@ -1639,6 +1770,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Settings Listeners
+    const initialEmoji = personEmoji.textContent || '🧍';
+
+    const updateSelectedEmoji = (emoji: string) => {
+        personEmoji.textContent = emoji;
+        emojiOptionButtons.forEach(btn => {
+            const isSelected = btn.dataset.emojiOption === emoji;
+            btn.classList.toggle('selected', isSelected);
+            btn.setAttribute('aria-pressed', isSelected.toString());
+        });
+    };
+
+    updateSelectedEmoji(initialEmoji);
+
+    emojiOptionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const emoji = btn.dataset.emojiOption;
+            if (!emoji) return;
+            playSound('click');
+            updateSelectedEmoji(emoji);
+        });
+    });
+
     playerNameInput.addEventListener('input', () => {
         playerName = playerNameInput.value.trim() || 'Person';
         personLabel.textContent = playerName;
