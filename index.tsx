@@ -78,6 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chat-input') as HTMLInputElement;
     const chatSendBtn = document.getElementById('chat-send-btn') as HTMLButtonElement;
     const selfChatBubble = document.getElementById('self-chat-bubble') as HTMLElement;
+    const chatToggleButton = document.getElementById('chat-toggle-button') as HTMLButtonElement | null;
+    const chatToggleDefaultLabel = chatToggleButton?.getAttribute('aria-label') || 'Toggle chat';
 
 
     // --- Audio Engine ---
@@ -224,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isMusicMuted = false;
     let animationPromiseResolver: Function | null = null;
     let draggedItem: HTMLElement | null = null;
+    const supportsCoarsePointer = window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
     const visitedCities = new Set<string>();
     const collectedSouvenirs = new Map<string, { name: string; emoji: string; cost: number }>();
     const unlockedRecipes = new Map<string, { name: string; emoji: string; cost: number }>();
@@ -738,6 +741,16 @@ document.addEventListener('DOMContentLoaded', () => {
         p.innerHTML = `<strong style="color: ${color};">${sender}:</strong> ${message}`;
         chatHistory.appendChild(p);
         chatHistory.scrollTop = chatHistory.scrollHeight;
+
+        if (chatToggleButton) {
+            if (chatContainer.classList.contains('collapsed') && sender !== playerName) {
+                chatToggleButton.classList.add('has-unread');
+                chatToggleButton.setAttribute('aria-label', `${chatToggleDefaultLabel} (new messages)`);
+            } else if (!chatContainer.classList.contains('collapsed')) {
+                chatToggleButton.classList.remove('has-unread');
+                chatToggleButton.setAttribute('aria-label', chatToggleDefaultLabel);
+            }
+        }
     }
     
     async function handleSendMessage() {
@@ -1006,10 +1019,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function completeBagDrop(food: HTMLElement) {
+        const reward = parseInt(food.dataset.reward ?? '0', 10);
+        if (Number.isNaN(reward) || reward <= 0) return;
+
+        if (draggedItem === food) {
+            draggedItem = null;
+        }
+
+        food.classList.remove('is-dragging');
+        updateScore(reward);
+        playSound('earn');
+        showEarningToast(reward);
+        food.remove();
+        setTimeout(createFoodItem, 80);
+    }
+
     function createFoodItem() {
         if (availableFoods.length === 0) return;
         const foodData = availableFoods[Math.floor(Math.random() * availableFoods.length)];
-        
+
         const food = document.createElement('div');
         food.className = 'fry';
         food.dataset.reward = foodData.reward.toString();
@@ -1037,6 +1066,51 @@ document.addEventListener('DOMContentLoaded', () => {
             food.classList.remove('is-dragging');
             draggedItem = null;
         });
+
+        if (supportsCoarsePointer) {
+            let pointerStart: { x: number; y: number; time: number } | null = null;
+
+            const handleQuickDrop = (clientX: number, clientY: number) => {
+                if (!pointerStart) return;
+                const { x, y, time } = pointerStart;
+                const elapsed = Date.now() - time;
+                const travel = Math.hypot(clientX - x, clientY - y);
+                const bagRect = bagDropzone.getBoundingClientRect();
+                const bagCenterX = bagRect.left + bagRect.width / 2;
+                const bagCenterY = bagRect.top + bagRect.height / 2;
+                const distanceToBag = Math.hypot(clientX - bagCenterX, clientY - bagCenterY);
+                const endedInsideBag =
+                    clientX >= bagRect.left - 24 &&
+                    clientX <= bagRect.right + 24 &&
+                    clientY >= bagRect.top - 24 &&
+                    clientY <= bagRect.bottom + 24;
+                const quickFlick = elapsed < 350 && travel > 30;
+                const flickedTowardBag = distanceToBag < Math.max(120, bagRect.width);
+
+                if (endedInsideBag || (quickFlick && flickedTowardBag)) {
+                    bagDropzone.classList.add('over');
+                    completeBagDrop(food);
+                    setTimeout(() => bagDropzone.classList.remove('over'), 150);
+                }
+            };
+
+            food.addEventListener('pointerdown', (event) => {
+                if (event.pointerType === 'touch' || event.pointerType === 'pen') {
+                    pointerStart = { x: event.clientX, y: event.clientY, time: Date.now() };
+                }
+            });
+
+            food.addEventListener('pointerup', (event) => {
+                if ((event.pointerType === 'touch' || event.pointerType === 'pen') && pointerStart) {
+                    handleQuickDrop(event.clientX, event.clientY);
+                }
+                pointerStart = null;
+            });
+
+            food.addEventListener('pointercancel', () => {
+                pointerStart = null;
+            });
+        }
 
         friesContainer.appendChild(food);
     }
@@ -1583,6 +1657,23 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsOkBtn.addEventListener('click', () => settingsDialog.classList.add('hidden'));
 
     // Chat Listeners
+    chatContainer.setAttribute('aria-hidden', 'false');
+    if (chatToggleButton) {
+        chatToggleButton.classList.add('active');
+        chatToggleButton.addEventListener('click', () => {
+            const collapsed = chatContainer.classList.toggle('collapsed');
+            chatToggleButton.classList.toggle('active', !collapsed);
+            chatToggleButton.classList.remove('has-unread');
+            chatToggleButton.setAttribute('aria-expanded', (!collapsed).toString());
+            chatToggleButton.setAttribute('aria-label', chatToggleDefaultLabel);
+            chatContainer.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
+
+            if (!collapsed) {
+                setTimeout(() => chatInput.focus(), 120);
+            }
+        });
+    }
+
     chatSendBtn.addEventListener('click', handleSendMessage);
     chatInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -1604,7 +1695,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        const interactiveElement = target.closest('.action-button, .button-42, .button-5, .button-14, .button-85, #passport-office-container, #airport-container, #mf-group-container, #restaurant-container, #gift-shop-container, #luggage-container, #settings-container, #away-airport-placeholder');
+        const interactiveElement = target.closest('.action-button, .button-42, .button-5, .button-14, .button-85, #passport-office-container, #airport-container, #mf-group-container, #restaurant-container, #gift-shop-container, #luggage-container, #settings-container, #away-airport-placeholder, #chat-toggle-button');
         if (interactiveElement && !interactiveElement.hasAttribute('data-hover-sound-played')) {
             playSound('pop');
             interactiveElement.setAttribute('data-hover-sound-played', 'true');
@@ -1636,12 +1727,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         bagDropzone.classList.remove('over');
         if (draggedItem) {
-            const reward = parseInt(e.dataTransfer!.getData('text/plain'));
-            updateScore(reward);
-            playSound('earn');
-            showEarningToast(reward); // Show toast on successful manual drop
-            draggedItem.remove();
-            setTimeout(createFoodItem, 50); // Replenish quickly
+            completeBagDrop(draggedItem);
         }
     });
 
@@ -1650,7 +1736,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playSound('welcome');
     updateScore(500);
     updateMinigameUnlockStatus();
-    setInterval(pollAndUpdateState, 5000);
+    setInterval(pollAndUpdateState, 1000);
     pollAndUpdateState(); // Initial fetch
     showHomeView();
     gameLoop();

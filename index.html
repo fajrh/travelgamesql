@@ -167,7 +167,7 @@
             bottom: 20px;
             left: 20px;
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             gap: 15px;
             z-index: 3;
         }
@@ -176,6 +176,45 @@
             font-size: 40px;
             position: relative;
             transition: all 0.2s ease-in-out;
+        }
+
+        #chat-toggle-button {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            border-radius: 26px;
+            border: 2px solid #ffdf73;
+            background: rgba(38, 27, 72, 0.9);
+            color: #ffe9b6;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        #chat-toggle-button:hover,
+        #chat-toggle-button:focus-visible {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+            outline: none;
+        }
+
+        #chat-toggle-button.active {
+            background: linear-gradient(180deg, #ffe37a, #ffb347);
+            color: #3a2461;
+        }
+
+        #chat-toggle-button.has-unread::after {
+            content: '•';
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 18px;
+            color: #ff4d6d;
+            text-shadow: 0 0 6px rgba(255, 77, 109, 0.9);
         }
 
         #passport-office-img, #airport-img, #mf-group-img {
@@ -1055,10 +1094,17 @@
             box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
             display: flex;
             flex-direction: column;
-            z-index: 15;
+            z-index: 30;
             font-family: 'Trebuchet MS', 'Lucida Console', monospace;
             overflow: hidden;
             backdrop-filter: blur(4px);
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        #chat-container.collapsed {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px) scale(0.96);
         }
 
         #chat-history {
@@ -1163,6 +1209,176 @@
             }
         }
 
+        @media (max-width: 1024px) {
+            body {
+                overflow-y: auto;
+                cursor: default;
+            }
+
+            #score {
+                font-size: 28px;
+                top: 12px;
+            }
+
+            #city-title {
+                top: 48px;
+                font-size: 26px;
+            }
+
+            #passport-office-img, #airport-img, #mf-group-img {
+                width: 130px;
+                height: 130px;
+            }
+
+            #passport-office-container {
+                top: clamp(56px, 10vh, 120px);
+                left: clamp(12px, 6vw, 48px);
+            }
+
+            #airport-container {
+                top: clamp(56px, 10vh, 120px);
+                right: clamp(12px, 6vw, 48px);
+            }
+
+            #mf-group-container {
+                top: 52vh;
+                right: clamp(12px, 6vw, 48px);
+                left: auto;
+                bottom: auto;
+                transform: translateY(-50%);
+            }
+
+            #mf-group-container:hover {
+                transform: translateY(-50%) scale(1.05);
+            }
+
+            #passport-office-container:hover,
+            #airport-container:hover {
+                transform: scale(1.05);
+            }
+
+            #home-bottom-left-controls {
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+                left: clamp(12px, 6vw, 48px);
+                transform: none;
+                gap: 12px;
+            }
+
+            #luggage-container, #settings-container {
+                font-size: 34px;
+            }
+
+            #visited-cities-list {
+                position: fixed;
+                top: auto;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 32vh + 80px);
+                left: 50%;
+                transform: translateX(-50%);
+                width: min(320px, 82vw);
+            }
+
+            #chat-container {
+                width: min(360px, calc(100vw - 32px));
+                left: clamp(12px, 6vw, 48px);
+                transform: none;
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+                height: min(280px, 36vh);
+            }
+
+            #chat-history {
+                font-size: 12px;
+            }
+
+            #chat-input {
+                font-size: 14px;
+            }
+
+            #chat-send-btn {
+                padding: 0 14px;
+            }
+
+            #person-container, .other-player {
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+
+            .city-image-container {
+                bottom: calc(32vh + 100px);
+            }
+        }
+
+        @media (max-width: 600px) {
+            #score {
+                font-size: 24px;
+            }
+
+            #city-title {
+                font-size: 22px;
+            }
+
+            #passport-office-img, #airport-img, #mf-group-img {
+                width: min(38vw, 110px);
+                height: min(38vw, 110px);
+            }
+
+            #passport-office-container {
+                top: clamp(48px, 12vh, 100px);
+                left: clamp(10px, 7vw, 36px);
+            }
+
+            #airport-container {
+                top: clamp(48px, 12vh, 100px);
+                right: clamp(10px, 7vw, 36px);
+            }
+
+            #mf-group-container {
+                top: 54vh;
+                right: clamp(10px, 7vw, 36px);
+            }
+
+            #home-bottom-left-controls {
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+                left: clamp(10px, 7vw, 36px);
+            }
+
+            #visited-cities-list {
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 260px);
+                width: 90vw;
+            }
+
+            #chat-container {
+                height: min(220px, 34vh);
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 74px);
+                width: min(94vw, 340px);
+            }
+
+            #chat-history {
+                font-size: 11px;
+            }
+
+            #chat-input {
+                font-size: 13px;
+                padding: 8px;
+            }
+
+            #chat-send-btn {
+                font-size: 13px;
+                padding: 0 12px;
+            }
+
+            .city-image-container img {
+                max-width: 95vw;
+                max-height: 45vh;
+            }
+
+            #city-emojis {
+                bottom: calc(34vh + 80px);
+            }
+
+            #toast-container {
+                bottom: calc(env(safe-area-inset-bottom, 0px) + 220px);
+            }
+        }
+
         /* Loading Screen */
         #loading-screen {
             position: fixed;
@@ -1257,6 +1473,7 @@
     </div>
 
     <div id="home-bottom-left-controls">
+        <button id="chat-toggle-button" type="button" aria-label="Toggle chat" aria-controls="chat-container" aria-expanded="true">💬</button>
         <div id="luggage-container">🧳</div>
         <div id="settings-container">⚙️</div>
     </div>
