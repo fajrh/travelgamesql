@@ -30,12 +30,13 @@ All responses include permissive CORS headers, and the server will also reply to
 
 ## State persistence
 
-The server is stateless and relies entirely on a MySQL database with two main tables: `players` and `chatlog`.
+The server is stateless and relies entirely on a MySQL database with three main tables: `players`, `coordinates`, and `chatlog`.
 
-- Player ID, name, emoji, coordinates, facing direction, zone, and city are stored in the `players` table.
+- Player identity, display name, and emoji are stored in the `players` table.
+- The latest in-world position, zone, city, facing direction, and heartbeat timestamp live in the `coordinates` table.
 - Chat message ID, author, timestamp, city, and the sanitised text are stored in the `chatlog` table.
 
-Stale players that stop checking in are automatically removed from the `players` table after 15 seconds of inactivity.
+Stale players that stop checking in are automatically removed from the `coordinates` table and their `players` entry is cleaned up after 15 seconds of inactivity.
 
 ## Polling workflow
 
